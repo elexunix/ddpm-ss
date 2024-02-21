@@ -1,0 +1,83 @@
+{
+  "name": "one_batch_test",
+  "n_gpu": 1,
+  "preprocessing": {
+    "sr": 16000,
+    "spectrogram": {
+      "type": "MelSpectrogram",
+      "args": {
+      }
+    },
+    "log_spec": true
+  },
+  "augmentations": {
+    "wave": [],
+    "spectrogram": []
+  },
+  "arch": {
+    "type": "SepDiffModel",
+    "args": {
+    }
+  },
+  "data": {
+    "train": {
+      "batch_size": 2,
+      "num_workers": 0,
+      "datasets": [
+       {
+          "type": "LibriMixDataset",
+          "args": {
+            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_train-360_mix_both.csv"
+          }
+        }
+      ]
+    },
+    "val": {
+      "batch_size": 2,
+      "num_workers": 0,
+      "datasets": [
+       {
+          "type": "LibriMixDataset",
+          "args": {
+            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_test_mix_both.csv"
+          }
+        }
+      ]
+    }
+  },
+  "optimizer": {
+    "type": "SGD",
+    "args": {
+      "lr": 1e-2
+    }
+  },
+  "loss": {
+    "type": "CTCLoss",
+    "args": {}
+  },
+  "metrics": [
+  ],
+  "lr_scheduler": {
+    "type": "OneCycleLR",
+    "args": {
+      "steps_per_epoch": 100,
+      "epochs": 51,
+      "anneal_strategy": "cos",
+      "max_lr": 1e-2,
+      "pct_start": 0.2
+    }
+  },
+  "trainer": {
+    "epochs": 50,
+    "log_interval": 50,
+    "save_dir": "saved/",
+    "save_period": 5,
+    "verbosity": 2,
+    "monitor": "min val_loss",
+    "early_stop": 100,
+    "visualize": "wandb",
+    "wandb_project": "ss_project",
+    "len_epoch": 100,
+    "grad_norm_clip": 10
+  }
+}

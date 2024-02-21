@@ -1,0 +1,149 @@
+{
+  "name": "default_config",
+  "n_gpu": 1,
+  "preprocessing": {
+    "sr": 16000,
+    "spectrogram": {
+      "type": "MelSpectrogram",
+      "args": {
+      }
+    },
+    "log_spec": true
+  },
+  "augmentations": {
+    "wave": [],
+    "spectrogram": []
+  },
+  "arch": {
+    "type": "LSTMModel",
+    "args": {
+      "n_feats": 128,
+      "fc_hidden": 1024
+    }
+  },
+  "data": {
+    "train": {
+      "batch_size": 48,
+      "num_workers": 8,
+      "datasets": [
+        {
+          "type": "LibrispeechDataset",
+          "args": {
+            "part": "train-clean-100",
+            "max_audio_length": 20.0,
+            "max_text_length": 200
+          },
+          "module": "hw_asr.model"
+        },
+        {
+          "type": "LibrispeechDataset",
+          "args": {
+            "part": "train-clean-360",
+            "max_audio_length": 20.0,
+            "max_text_length": 200
+          }
+        },
+        {
+          "type": "LibrispeechDataset",
+          "args": {
+            "part": "train-other-500",
+            "max_audio_length": 20.0,
+            "max_text_length": 200
+          }
+        }
+      ]
+    },
+    "val": {
+      "batch_size": 48,
+      "num_workers": 8,
+      "datasets": [
+        {
+          "type": "LibrispeechDataset",
+          "args": {
+            "part": "dev-clean"
+          }
+        }
+      ]
+    },
+    "test": {
+      "batch_size": 48,
+      "num_workers": 8,
+      "datasets": [
+        {
+          "type": "LibrispeechDataset",
+          "args": {
+            "part": "test-clean"
+          }
+        }
+      ]
+    }
+  },
+  "optimizer": {
+    "type": "Adam",
+    "args": {
+      "lr": 1e-3
+    }
+  },
+  "loss": {
+    "type": "CTCLoss",
+    "args": {}
+  },
+  "metrics": [
+    {
+      "type": "ArgmaxCERMetric",
+      "args": {
+        "name": "CER (argmax)"
+      }
+    },
+    {
+      "type": "BSCERMetric",
+      "args": {
+        "name": "CER (BS&LM)",
+        "use_lm": 1
+      }
+    },
+    {
+      "type": "ArgmaxWERMetric",
+      "args": {
+        "name": "WER (argmax)"
+      }
+    },
+    {
+      "type": "BSWERMetric",
+      "args": {
+        "name": "WER (BS&LM)",
+        "use_lm": 1
+      }
+    }
+  ],
+  "lr_scheduler": {
+    "type": "OneCycleLR",
+    "args": {
+      "steps_per_epoch": 101,
+      "epochs": 1,
+      "anneal_strategy": "linear",
+      "max_lr": 1e-3,
+      "pct_start": 0.2
+    }
+  },
+  "trainer": {
+    "epochs": 1,
+    "save_dir": "saved/",
+    "save_period": 5,
+    "verbosity": 2,
+    "monitor": "min val_loss",
+    "early_stop": 100,
+    "visualize": "wandb",
+    "wandb_project": "asr_project",
+    "len_epoch": 100,
+    "log_interval": 50,
+    "grad_norm_clip": 10
+  },
+  "text_encoder": {
+    "type": "CTCCharTextEncoder",
+    "args": {
+      "lm_for_bs_path": "arpa-models/lowercase-3-gram.pruned.1e-7.arpa",
+      "librispeech_vocab_path": "arpa-models/lowercase-librispeech-vocab.txt"
+    }
+  }
+}
