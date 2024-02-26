@@ -1,5 +1,5 @@
 {
-  "name": "one_batch_test",
+  "name": "sep_diff_0params",
   "n_gpu": 1,
   "preprocessing": {
     "sr": 16000,
@@ -39,7 +39,8 @@
        {
           "type": "LibriMixDataset",
           "args": {
-            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_test_mix_both.csv"
+            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_test_mix_both.csv",
+            "limit": 300
           }
         }
       ]
@@ -71,13 +72,13 @@
     "epochs": 50,
     "log_interval": 50,
     "save_dir": "saved/",
-    "save_period": 5,
+    "save_period": 10,
     "verbosity": 2,
     "monitor": "min val_loss",
     "early_stop": 100,
     "visualize": "wandb",
-    "wandb_project": "ss_project",
-    "len_epoch": 100,
+    "wandb_project": "ddpmss_project",
+    "len_epoch": 200,
     "grad_norm_clip": 10
   }
 }

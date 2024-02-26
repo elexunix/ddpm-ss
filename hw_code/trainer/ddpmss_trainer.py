@@ -104,11 +104,11 @@ class DDPMSSTrainer(BaseTrainer):
           'learning rate', self.lr_scheduler.get_last_lr()[0]
         )
         #self._log_predictions(**batch)
-        self._log_spectrogram('mixed spectrogram', batch['mixed'])
-        self._log_spectrogram('target1 spectrogram', batch['target1'])
-        self._log_spectrogram('target2 spectrogram', batch['target2'])
-        self._log_spectrogram('predicted1 spectrogram', batch['predicted1'])
-        self._log_spectrogram('predicted2 spectrogram', batch['predicted2'])
+        self._log_audio('mixed spectrogram', batch['mixed'])
+        self._log_audio('target1 spectrogram', batch['target1'])
+        self._log_audio('target2 spectrogram', batch['target2'])
+        self._log_audio('predicted1 spectrogram', batch['predicted1'])
+        self._log_audio('predicted2 spectrogram', batch['predicted2'])
         self._log_scalars(self.train_metrics)
         # we don't want to reset train metrics at the start of every epoch
         # because we are interested in recent train metrics
@@ -146,6 +146,7 @@ class DDPMSSTrainer(BaseTrainer):
         self.lr_scheduler.step()
 
     metrics.update('loss', batch['loss'].item())
+    metrics.update('sisdr', batch['sisdr'].item())
     #metrics.update('clf accuracy', batch['clf_accuracy'].item())
     for met in self.metrics:
       metrics.update(met.name, met(**batch))
@@ -174,11 +175,11 @@ class DDPMSSTrainer(BaseTrainer):
       self.writer.set_step(epoch * self.len_epoch, part)
       self._log_scalars(self.evaluation_metrics)
       #self._log_predictions(**batch)
-      self._log_spectrogram('mixed spectrogram', batch['mixed'])
-      self._log_spectrogram('predicted1 spectrogram', batch['predicted1'])
-      self._log_spectrogram('predicted2 spectrogram', batch['predicted2'])
-      self._log_spectrogram('target1 spectrogram', batch['target1'])
-      self._log_spectrogram('target2 spectrogram', batch['target2'])
+      self._log_audio('mixed spectrogram', batch['mixed'])
+      self._log_audio('predicted1 spectrogram', batch['predicted1'])
+      self._log_audio('predicted2 spectrogram', batch['predicted2'])
+      self._log_audio('target1 spectrogram', batch['target1'])
+      self._log_audio('target2 spectrogram', batch['target2'])
 
     # DON'T add histogram of model parameters to the tensorboard
     #for name, p in self.model.named_parameters():
@@ -237,6 +238,10 @@ class DDPMSSTrainer(BaseTrainer):
     image = PIL.Image.open(plot_spectrogram_to_buf(spectrogram))
     self.writer.add_image(caption, ToTensor()(image))
 
+  def _log_audio(self, caption, audio_batch):
+    audio = random.choice(audio_batch.cpu())
+    self.writer.add_audio(caption, audio, sample_rate=16000)
+
   @torch.no_grad()
   def get_grad_norm(self, norm_type=2):
     parameters = self.model.parameters()
@@ -266,7 +271,11 @@ class DDPMSSTrainer(BaseTrainer):
 
   def compute_metrics(self, pred1, pred2, tgt1, tgt2):
     # just min of losses for "p1<->t1 p2<->t2" and "p1<->t2 p2<->t1", for now
-    self.sisdr(pred1, tgt1)
+    print(f'{pred1=}')
+    print(f'{tgt1=}')
+    print(f'{pred2=}')
+    print(f'{tgt2=}')
     p1t1, p1t2, p2t1, p2t2 = self.sisdr(pred1, tgt1), self.sisdr(pred1, tgt2), self.sisdr(pred2, tgt1), self.sisdr(pred2, tgt2)
-    sisdr = torch.min(p1t1 + p2t2, p1t2 + p2t1) / 2  # AVERAGE of two SISDRs
+    sisdr = torch.max(p1t1 + p2t2, p1t2 + p2t1) / 2  # AVERAGE of two SISDRs
+    print(f'{p1t1=}, {p1t2=}, {p2t1=}, {p2t2=}; {sisdr=}')
     return {'sisdr': sisdr, 'loss': -sisdr}

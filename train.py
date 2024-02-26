@@ -31,7 +31,7 @@ def main(config):
 
   # build model architecture, then print to console
   model = config.init_obj(config["arch"], module_arch)
-  print('model with', sum(p.numel() for p in model.parameters()), 'parameters')
+  print('MODEL WITH', sum(p.numel() for p in model.parameters()), 'PARAMETERS')
   logger.info(model)
 
   # prepare for (multi-device) GPU training
