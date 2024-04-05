@@ -99,8 +99,8 @@ class SepDiffModel(nn.Module):
       denoised2 = self.fix_length(denoised2, L, lenience=200)
       #print(f'{separated1[0, 0].norm()=}')
       #print(f'{denoised1[0, 0].norm()=}')
-    #return {"separated1": s1, "separated2": s2, "predicted1": separated1 + 0 * self.dummy, "predicted2": separated2}  # works!
-    return {"separated1": s1, "separated2": s2, "predicted1": denoised1 + 0 * self.dummy, "predicted2": denoised2}  # doesn't work!
+    return {"separated1": s1, "separated2": s2, "predicted1": separated1 + 0 * self.dummy, "predicted2": separated2}  # works!
+    #return {"separated1": s1, "separated2": s2, "predicted1": denoised1 + 0 * self.dummy, "predicted2": denoised2}  # doesn't work!
 
 
     with torch.no_grad():
