@@ -4,3 +4,4 @@ wandb
 test_data
 data
 useless
+*.pyc
