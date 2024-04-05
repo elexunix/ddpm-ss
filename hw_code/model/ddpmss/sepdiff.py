@@ -56,8 +56,7 @@ class MixerModel(nn.Module):
     B, C1, H, W = x.shape
     B_, C2, H_, W_ = y.shape
     assert B == B_ and C1 == C2 == 1 and H == H_ and W == W_, f'MixerModel received shapes {x.shape} and {y.shape}'
-    return y
-    #
+    return x
     z = torch.cat([x, y], 1)
     z = self.stack(z)
     a_coeffs, b_coeffs = z[:, 0:1, :, :], z[:, 1:2, :, :]
@@ -90,25 +89,34 @@ class SepDiffModel(nn.Module):
     assert C == 1
     with torch.no_grad():
       separated1, separated2 = self.separator(mixture)
-    separated1 = self.fix_length(separated1, L, lenience=1)
-    separated2 = self.fix_length(separated2, L, lenience=1)
-    #return {"predicted1": separated1 + 0 * self.dummy, "predicted2": separated2}  # in case of sepformer-only pipeline
-    denoised1 = self.denoiser(separated1)
-    denoised2 = self.denoiser(separated2)
-    denoised1 = self.fix_length(denoised1, L, lenience=200)
-    denoised2 = self.fix_length(denoised2, L, lenience=200)
-    separated1 = self.stft(separated1)
-    separated2 = self.stft(separated2)
-    denoised1 = self.stft(denoised1)
-    denoised2 = self.stft(denoised2)
-    predicted1_angle = self.mixer_angle(separated1.angle(), denoised1.angle())
-    predicted1_abs = self.mixer_abs(separated1.abs(), denoised1.abs())
-    predicted2_angle = self.mixer_angle(separated2.angle(), denoised2.angle())
-    predicted2_abs = self.mixer_abs(separated2.abs(), denoised2.abs())
+      separated1 = self.fix_length(separated1, L, lenience=1)
+      separated2 = self.fix_length(separated2, L, lenience=1)
+      s1, s2 = separated1.clone(), separated2.clone()
+      #return {"separated1": s1, "separated2": s2, "predicted1": separated1 + 0 * self.dummy, "predicted2": separated2}  # in case of sepformer-only pipeline
+      denoised1 = self.denoiser(separated1)
+      denoised2 = self.denoiser(separated2)
+      denoised1 = self.fix_length(denoised1, L, lenience=200)
+      denoised2 = self.fix_length(denoised2, L, lenience=200)
+      #print(f'{separated1[0, 0].norm()=}')
+      #print(f'{denoised1[0, 0].norm()=}')
+    #return {"separated1": s1, "separated2": s2, "predicted1": separated1 + 0 * self.dummy, "predicted2": separated2}  # works!
+    return {"separated1": s1, "separated2": s2, "predicted1": denoised1 + 0 * self.dummy, "predicted2": denoised2}  # doesn't work!
+
+
+    with torch.no_grad():
+      separated1 = self.stft(separated1)
+      separated2 = self.stft(separated2)
+      denoised1 = self.stft(denoised1)
+      denoised2 = self.stft(denoised2)
+    #predicted1_angle = denoised1.angle()  #self.mixer_angle(separated1.angle(), denoised1.angle())
+    #predicted1_abs = denoised1.abs()  #self.mixer_abs(separated1.abs(), denoised1.abs())
+    #predicted2_angle = denoised2.angle()  #self.mixer_angle(separated2.angle(), denoised2.angle())
+    #predicted2_abs = denoised2.abs()  #self.mixer_abs(separated2.abs(), denoised2.abs())
     predicted1 = torch.view_as_complex(predicted1_abs.unsqueeze(-1) * torch.stack([torch.cos(predicted1_angle), torch.sin(predicted1_angle)], -1))
     predicted2 = torch.view_as_complex(predicted2_abs.unsqueeze(-1) * torch.stack([torch.cos(predicted2_angle), torch.sin(predicted2_angle)], -1))
+    #predicted1, predicted2 = denoised1, denoised2
     predicted1 = self.istft(predicted1)
     predicted2 = self.istft(predicted2)
     predicted1 = self.fix_length(predicted1, L, lenience=300)
     predicted2 = self.fix_length(predicted2, L, lenience=300)
-    return {"predicted1": predicted1 + 0 * self.dummy, "predicted2": predicted2}
+    return {"separated1": s1, "separated2": s2, "predicted1": predicted1 + 0 * self.dummy, "predicted2": predicted2}

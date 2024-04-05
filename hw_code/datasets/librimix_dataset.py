@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class LibriMixDataset(BaseDatasetSS):
-  def __init__(self, csv_filename, limit=None, *args, **kwargs):
+  def __init__(self, csv_filename, cnt_limit=None, maxlen=None, *args, **kwargs):
     #assert part in ['train', 'test']
     #if data_dir is None:
     #  data_dir = ROOT_PATH / 'data' / 'datasets' / 'source-separation' / part
@@ -27,15 +27,16 @@ class LibriMixDataset(BaseDatasetSS):
         "path_target1": row["source_1_path"],
         "path_target2": row["source_2_path"],
       })
-      if limit is not None and index >= limit - 1:
+      if cnt_limit is not None and index >= cnt_limit - 1:
         break
     super().__init__(self.index, *args, **kwargs)
+    self.maxlen = maxlen
 
   def __getitem__(self, index):
     return {
-      'mixed': self.load_audio(self.index[index]['path_mixed'])[None],
-      'target1': self.load_audio(self.index[index]['path_target1'])[None],
-      'target2': self.load_audio(self.index[index]['path_target2'])[None],
+      'mixed': self.load_audio(self.index[index]['path_mixed'], maxlen=self.maxlen)[None],
+      'target1': self.load_audio(self.index[index]['path_target1'], maxlen=self.maxlen)[None],
+      'target2': self.load_audio(self.index[index]['path_target2'], maxlen=self.maxlen)[None],
     }
 
   def __len__(self):

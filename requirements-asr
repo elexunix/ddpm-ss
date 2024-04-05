@@ -6,7 +6,7 @@ tqdm
 tensorboard
 pandas
 
-speechbrain
+speechbrain==0.5.16
 datasets
 torch_audiomentations
 wandb

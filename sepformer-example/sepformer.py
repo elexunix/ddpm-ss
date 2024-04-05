@@ -5,6 +5,7 @@ from torchmetrics import ScaleInvariantSignalDistortionRatio as SISDR
 resampler = torchaudio.transforms.Resample(orig_freq=16000, new_freq=8000)
 
 model = sepformer.from_hparams(source='speechbrain/sepformer-wsj02mix', savedir='pretrained-models/sepformer-wsj02mix')
+#model(1235)
 
 mixture_path = 'mixture.wav'
 mixture, _16000 = torchaudio.load(mixture_path)

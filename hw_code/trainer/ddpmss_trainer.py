@@ -1,13 +1,14 @@
-import random
 from pathlib import Path
 from random import shuffle
 import PIL
+import numpy as np
 import pandas as pd
-from tqdm import tqdm
-import torch, torch.nn.functional as F
-from torch.nn.utils import clip_grad_norm_
+import torch, torch.nn as nn, torch.nn.functional as F
+import torchaudio
 from torchvision.transforms import ToTensor
-from torchmetrics import ScaleInvariantSignalDistortionRatio as SISDR
+#from torchmetrics import ScaleInvariantSignalDistortionRatio as SISDR  # it's a scam; for more scam, please visit https://github.com/elexunix/scam
+from torchmetrics.functional import scale_invariant_signal_distortion_ratio as SISDR
+from tqdm import tqdm
 
 from hw_code.base import BaseTrainer
 from hw_code.base.base_text_encoder import BaseTextEncoder
@@ -49,7 +50,8 @@ class DDPMSSTrainer(BaseTrainer):
     self.log_step = self.config['trainer']['log_interval']
     self.train_metrics = MetricTracker('sisdr', 'loss', 'grad norm', *[m.name for m in self.metrics], writer=self.writer)
     self.evaluation_metrics = MetricTracker('sisdr', 'loss', *[m.name for m in self.metrics], writer=self.writer)
-    self.sisdr = SISDR().to(device)
+    #self.sisdr = SISDR().to(device)
+    self.sisdr = SISDR
 
   @staticmethod
   def move_batch_to_device(batch, device: torch.device):
@@ -59,7 +61,7 @@ class DDPMSSTrainer(BaseTrainer):
 
   def _clip_grad_norm(self):
     if self.config['trainer'].get('grad_norm_clip', None) is not None:
-      clip_grad_norm_(
+      nn.utils.clip_grad_norm_(
         self.model.parameters(), self.config['trainer']['grad_norm_clip']
       )
 
@@ -107,6 +109,8 @@ class DDPMSSTrainer(BaseTrainer):
         self._log_audio('mixed spectrogram', batch['mixed'])
         self._log_audio('target1 spectrogram', batch['target1'])
         self._log_audio('target2 spectrogram', batch['target2'])
+        self._log_audio('separated1 spectrogram', batch['separated1'])
+        self._log_audio('separated2 spectrogram', batch['separated2'])
         self._log_audio('predicted1 spectrogram', batch['predicted1'])
         self._log_audio('predicted2 spectrogram', batch['predicted2'])
         self._log_scalars(self.train_metrics)
@@ -137,7 +141,7 @@ class DDPMSSTrainer(BaseTrainer):
 
     #batch['log_probs'] = F.log_softmax(batch['logits'], dim=-1)
     #batch['log_probs_length'] = self.model.transform_input_lengths(batch['spectrogram_length'])
-    batch.update(self.compute_metrics(outputs['predicted1'], outputs['predicted2'], batch['target1'], batch['target2']))
+    batch.update(self.compute_metrics(outputs['separated1'], outputs['separated2'], outputs['predicted1'], outputs['predicted2'], batch['target1'], batch['target2']))
     if is_train:
       batch['loss'].backward()
       self._clip_grad_norm()
@@ -176,6 +180,8 @@ class DDPMSSTrainer(BaseTrainer):
       self._log_scalars(self.evaluation_metrics)
       #self._log_predictions(**batch)
       self._log_audio('mixed spectrogram', batch['mixed'])
+      self._log_audio('separated1 spectrogram', batch['separated1'])
+      self._log_audio('separated2 spectrogram', batch['separated2'])
       self._log_audio('predicted1 spectrogram', batch['predicted1'])
       self._log_audio('predicted2 spectrogram', batch['predicted2'])
       self._log_audio('target1 spectrogram', batch['target1'])
@@ -239,7 +245,7 @@ class DDPMSSTrainer(BaseTrainer):
     self.writer.add_image(caption, ToTensor()(image))
 
   def _log_audio(self, caption, audio_batch):
-    audio = random.choice(audio_batch.cpu())
+    audio = audio_batch.cpu()[0]  #random.choice(audio_batch.cpu())
     self.writer.add_audio(caption, audio, sample_rate=16000)
 
   @torch.no_grad()
@@ -269,13 +275,32 @@ class DDPMSSTrainer(BaseTrainer):
       result[i, :l] = xs[i, :l]
     return result
 
-  def compute_metrics(self, pred1, pred2, tgt1, tgt2):
+  def compute_metrics(self, sep1, sep2, pred1, pred2, tgt1, tgt2):
     # just min of losses for "p1<->t1 p2<->t2" and "p1<->t2 p2<->t1", for now
-    print(f'{pred1=}')
-    print(f'{tgt1=}')
-    print(f'{pred2=}')
-    print(f'{tgt2=}')
-    p1t1, p1t2, p2t1, p2t2 = self.sisdr(pred1, tgt1), self.sisdr(pred1, tgt2), self.sisdr(pred2, tgt1), self.sisdr(pred2, tgt2)
-    sisdr = torch.max(p1t1 + p2t2, p1t2 + p2t1) / 2  # AVERAGE of two SISDRs
-    print(f'{p1t1=}, {p1t2=}, {p2t1=}, {p2t2=}; {sisdr=}')
+    random_number = np.random.randint(1000000)
+    print(f'{random_number=}')
+    for name, audio in ('p1', pred1), ('p2', pred2), ('s1', sep1), ('s2', sep2), ('t1', tgt1), ('t2', tgt2):
+      print(name + '.shape=' + str(audio.shape), f'{audio=}')
+      torchaudio.save('folder/' + str(random_number) + '-' + name + '.wav', audio.cpu()[0, :], 16000)
+    #p1t1, p1t2, p2t1, p2t2 = self.sisdr(pred1, tgt1), self.sisdr(pred1, tgt2), self.sisdr(pred2, tgt1), self.sisdr(pred2, tgt2)
+#    best_sisdr = -1000
+#    for k in range(1, 1026):
+#      #print(f'{k=}, {pred1.shape=}, {tgt1.shape=}, {pred1[..., k:].shape=}, {tgt1[..., :-k].shape=}')
+#      p1t1 = self.sisdr(pred1[..., k:], tgt1[..., :-k])
+#      p1t2 = self.sisdr(pred1[..., k:], tgt2[..., :-k])
+#      p2t1 = self.sisdr(pred2[..., k:], tgt1[..., :-k])
+#      p2t2 = self.sisdr(pred2[..., k:], tgt2[..., :-k])
+#      p1t1 = self.sisdr(pred1[..., :-k], tgt1[..., k:])
+#      p1t2 = self.sisdr(pred1[..., :-k], tgt2[..., k:])
+#      p2t1 = self.sisdr(pred2[..., :-k], tgt1[..., k:])
+#      p2t2 = self.sisdr(pred2[..., :-k], tgt2[..., k:])
+    p1t1 = self.sisdr(pred1, tgt1)
+    p1t2 = self.sisdr(pred1, tgt2)
+    p2t1 = self.sisdr(pred2, tgt1)
+    p2t2 = self.sisdr(pred2, tgt2)
+    sisdr = torch.stack([(p1t1 + p2t2) / 2, (p1t2 + p2t1) / 2]).max(1)[0].mean(0)  # mean_{over batch} max_{over matchings} average_{in pair} SISDR
+      #if sisdr > best_sisdr:
+        #print(f'{k=}, {sisdr.item()=}')
+        #best_sisdr = sisdr
+    #print(f'{p1t1=}, {p1t2=}, {p2t1=}, {p2t2=}; {sisdr=}')
     return {'sisdr': sisdr, 'loss': -sisdr}

@@ -47,12 +47,14 @@ class BaseDatasetSS(Dataset):
   def __len__(self):
     return len(self._index)
 
-  def load_audio(self, path):
+  def load_audio(self, path, maxlen=None):
     audio_tensor, sr = torchaudio.load(path)
     audio_tensor = audio_tensor[0:1, :] # remove all channels but the first
     target_sr = self.config_parser['preprocessing']['sr']
     if sr != target_sr:
       audio_tensor = torchaudio.functional.resample(audio_tensor, sr, target_sr)
+    if maxlen is not None:
+      audio_tensor = audio_tensor[..., :maxlen]
     return audio_tensor
 
   def process_wave(self, audio_tensor_wave: Tensor):

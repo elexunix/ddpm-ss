@@ -21,35 +21,37 @@
   },
   "data": {
     "train": {
-      "batch_size": 2,
+      "batch_size": 3,
       "num_workers": 0,
       "datasets": [
        {
           "type": "LibriMixDataset",
           "args": {
-            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_train-360_mix_both.csv"
+            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
+            "maxlen": 65536
           }
         }
       ]
     },
     "val": {
-      "batch_size": 2,
+      "batch_size": 3,
       "num_workers": 0,
       "datasets": [
        {
           "type": "LibriMixDataset",
           "args": {
-            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_test_mix_both.csv",
-            "limit": 300
+            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_test_mix_clean.csv",
+            "cnt_limit": 400,
+            "maxlen": 65536
           }
         }
       ]
     }
   },
   "optimizer": {
-    "type": "SGD",
+    "type": "Adam",
     "args": {
-      "lr": 1e-2
+      "lr": 1e-3
     }
   },
   "loss": {
@@ -61,16 +63,16 @@
   "lr_scheduler": {
     "type": "OneCycleLR",
     "args": {
-      "steps_per_epoch": 100,
-      "epochs": 51,
+      "steps_per_epoch": 200,
+      "epochs": 101,
       "anneal_strategy": "cos",
-      "max_lr": 1e-2,
+      "max_lr": 1e-3,
       "pct_start": 0.2
     }
   },
   "trainer": {
-    "epochs": 50,
-    "log_interval": 50,
+    "epochs": 100,
+    "log_interval": 10,
     "save_dir": "saved/",
     "save_period": 10,
     "verbosity": 2,
