@@ -18,8 +18,8 @@ device = 'cuda'
 audio = mixture.to(device)
 
 print(f'{audio.shape=}')
-audio = torch.cat([audio, audio])  # THIS LINE'S ADDED JUST TO SHOW THE CHANNELS=1 REQ.
-print(f'{audio.shape=}')
+#audio = torch.cat([audio, audio])  # THIS LINE'S ADDED JUST TO SHOW THE CHANNELS=1 REQ.
+#print(f'{audio.shape=}')
 
 mel = mel_spectogram(
   sample_rate=22050,
