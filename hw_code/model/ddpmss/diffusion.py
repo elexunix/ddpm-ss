@@ -35,15 +35,15 @@ class DiffusionModel(nn.Module):
 
   def __init__(self):
     super().__init__()
-    self.resampler_16k22k = torchaudio.transforms.Resample(orig_freq=16000, new_freq=22050)
-    self.resampler_22k16k = torchaudio.transforms.Resample(orig_freq=22050, new_freq=16000)
+    #self.resampler_16k22k = torchaudio.transforms.Resample(orig_freq=16000, new_freq=22050) if preconvert16k22k else lambda x : x
+    #self.resampler_22k16k = torchaudio.transforms.Resample(orig_freq=22050, new_freq=16000)
 
   @torch.inference_mode()
   def forward(self, x):
     B, C, L = x.shape
     assert C == 1
     #print(f'initially {x.shape=}')
-    x = self.resampler_16k22k(x)
+    #x = self.resampler_16k22k(x)
     #print(f'resampled to 22kHz {x.shape=}')
     x = F.pad(x, (0, (256 - x.shape[-1] % 256) % 256))  # ceils to 256
     #print(f'after padding {x.shape=}')
@@ -58,6 +58,6 @@ class DiffusionModel(nn.Module):
       for i in range(B)
     ])
     #print(f'after diffwave {x.shape=}')
-    x = self.resampler_22k16k(x)
+    #x = self.resampler_22k16k(x)
     #print(f'resampled back {x.shape=}')
     return x

@@ -278,10 +278,11 @@ class DDPMSSTrainer(BaseTrainer):
   def compute_metrics(self, sep1, sep2, pred1, pred2, tgt1, tgt2):
     # just min of losses for "p1<->t1 p2<->t2" and "p1<->t2 p2<->t1", for now
     random_number = np.random.randint(1000000)
-    print(f'{random_number=}')
-    for name, audio in ('p1', pred1), ('p2', pred2), ('s1', sep1), ('s2', sep2), ('t1', tgt1), ('t2', tgt2):
-      print(name + '.shape=' + str(audio.shape), f'{audio=}')
-      torchaudio.save('folder/' + str(random_number) + '-' + name + '.wav', audio.cpu()[0, :], 16000)
+    #print(f'{random_number=}')
+    #for name, audio in ('p1', pred1), ('p2', pred2), ('s1', sep1), ('s2', sep2), ('t1', tgt1), ('t2', tgt2):
+    #  print(name + '.shape=' + str(audio.shape), f'{audio=}')
+    #  torchaudio.save('folder/' + str(random_number) + '-' + name + '.wav', audio.cpu()[0, :], 16000)
+
     #p1t1, p1t2, p2t1, p2t2 = self.sisdr(pred1, tgt1), self.sisdr(pred1, tgt2), self.sisdr(pred2, tgt1), self.sisdr(pred2, tgt2)
 #    best_sisdr = -1000
 #    for k in range(1, 1026):
