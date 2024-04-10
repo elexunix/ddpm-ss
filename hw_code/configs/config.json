@@ -1,5 +1,5 @@
 {
-  "name": "sep_diff_0params",
+  "name": "baseline_model",
   "n_gpu": 1,
   "preprocessing": {
     "sr": 16000,
@@ -41,7 +41,6 @@
           "type": "LibriMixDataset",
           "args": {
             "csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_test_mix_clean.csv",
-            "cnt_limit": 400,
             "maxlen": 65536
           }
         }
@@ -67,8 +66,8 @@
     }
   },
   "trainer": {
-    "epochs": 20,
-    "log_interval": 10,
+    "epochs": 6,
+    "log_interval": 60,
     "save_dir": "saved/",
     "save_period": 20,
     "verbosity": 2,
@@ -76,7 +75,7 @@
     "early_stop": 100,
     "visualize": "wandb",
     "wandb_project": "ddpmss_project",
-    "len_epoch": 100,
+    "len_epoch": 300,
     "grad_norm_clip": 10
   }
 }
