@@ -6,7 +6,7 @@ from speechbrain.lobes.models.HifiGAN import mel_spectogram
 
 
 device = 'cuda'
-diffwave = DiffWaveVocoder.from_hparams(source="speechbrain/tts-diffwave-ljspeech", savedir="tmpdir", run_opts={"device": device})
+diffwave = DiffWaveVocoder.from_hparams(source="speechbrain/tts-diffwave-ljspeech", savedir="hw_code/model/ddpmss/tmpdir", run_opts={"device": device})
 
 
 class DiffusionModel(nn.Module):

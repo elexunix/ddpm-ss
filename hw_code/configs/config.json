@@ -1,5 +1,5 @@
 {
-  "name": "baseline_model",
+  "name": "bayesian",
   "n_gpu": 1,
   "preprocessing": {
     "sr": 16000,
@@ -15,7 +15,7 @@
     "spectrogram": []
   },
   "arch": {
-    "type": "SepDiffModel",
+    "type": "SepDiffConditionalModel",
     "args": {
     }
   },
