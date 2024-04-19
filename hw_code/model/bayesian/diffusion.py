@@ -22,7 +22,7 @@ class DiffusionModel(nn.Module):
     B, C, L = xs.shape  # x: predicted sources (by backbone), we condition on them
     assert C == 2
     assert m0.shape == (B, 1, L)  # m0: expected sum of sources, we condition on it
-    xs = F.pad(xs, (0, (256 - xs.shape[-1] % 256) % 256))  # ceils to 256
+    #xs = F.pad(xs, (0, (256 - xs.shape[-1] % 256) % 256))  # ceils to 256
     mels = torch.stack([mel_spectogram(sample_rate=22050, hop_length=256, win_length=1024, n_fft=1024, n_mels=80, f_min=0, f_max=8000, power=1.0, normalized=False, norm="slaney", mel_scale="slaney", compression=True, audio=x_) for x_ in xs])
     assert mels.ndim == 4
     mels = mels[..., :-1]

@@ -60,8 +60,7 @@ class SepDiffConditionalModel(nn.Module):
     self.dummy = nn.Parameter(torch.randn(1))
 
   def fix_length(self, tensor, L_target, lenience=10):
-    #B, C, L_old = tensor.shape
-    L_old = tensor.shape[-1]
+    B, C, L_old = tensor.shape
     # convs-deconvs may give, say, length 239864 instead of 239862, but we check it is not too much off:
     assert L_target - lenience <= L_old <= L_target + lenience, f'length before mixing is {L_old} but we need {L_target}, too much off'
     tensor = tensor[..., :L_target]
@@ -83,7 +82,7 @@ class SepDiffConditionalModel(nn.Module):
       denoised = self.denoiser(separated, self.resampler_16k22k(mixture))
       assert denoised.ndim == 3
       assert denoised.shape[1] == 2
-      denoised = self.fix_length(denoised, separated.shape[-1], lenience=100)
+      denoised = self.fix_length(denoised, separated.shape[-1], lenience=256)
       #return {"separated1": s1, "separated2": s2, "predicted1": separated1 + 0 * self.dummy, "predicted2": separated2}  # works!
       separated = self.resampler_22k16k(separated)
       denoised = self.resampler_22k16k(denoised)
