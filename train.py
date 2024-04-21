@@ -5,13 +5,13 @@ import warnings
 import numpy as np
 import torch, torchaudio
 
-import hw_code.loss as module_loss
-import hw_code.metric as module_metric
-import hw_code.model as module_arch
-from hw_code.trainer import DDPMSSTrainer as Trainer
-from hw_code.utils import prepare_device
-from hw_code.utils.object_loading import get_dataloaders
-from hw_code.utils.parse_config import ConfigParser
+import pipeline.loss as module_loss
+import pipeline.metric as module_metric
+import pipeline.model as module_arch
+from pipeline.trainer import DDPMSSTrainer as Trainer
+from pipeline.utils import prepare_device
+from pipeline.utils.object_loading import get_dataloaders
+from pipeline.utils.parse_config import ConfigParser
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -72,8 +72,8 @@ if __name__ == "__main__":
   args.add_argument(
     "-c",
     "--config",
-    #default="hw_code/configs/one_batch_test.json",
-    default="hw_code/configs/config.json",
+    #default="pipeline/configs/one_batch_test.json",
+    default="pipeline/configs/config.json",
     type=str,
     help="config file path (default: None)",
   )
