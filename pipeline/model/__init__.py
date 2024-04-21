@@ -1,4 +1,3 @@
-print('in pipeline/model/__init__.py')
 #from .asr.baseline_model import BaselineModel
 from pipeline.datasets.librispeech_dataset import LibrispeechDataset
 from pipeline.datasets.source_separation import SourceSeparationDataset
@@ -9,6 +8,8 @@ from .bayesian import *
 from .bayesian.diffwave import DiffWaveDiffusionTuned
 from .bayesian.diffwave import DiffWaveDiffusionTuned
 from .bayesian.sepdiff import SepDiffConditionalModel
+from .sepformer5 import Sepformer5Model
+
 __all__ = [
   "LibrispeechDataset",
   "SourceSeparationDataset",
@@ -18,6 +19,5 @@ __all__ = [
   #"SepDiffModel",
   "DiffWaveDiffusionTuned",
   "SepDiffConditionalModel",
+  "Sepformer5Model",
 ]
-
-print('out pipeline/model/__init__.py')

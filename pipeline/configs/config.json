@@ -1,5 +1,5 @@
 {
-  "name": "bayesian",
+  "name": "sepformer5",
   "n_gpu": 1,
   "preprocessing": {
     "sr": 16000,
@@ -15,7 +15,7 @@
     "spectrogram": []
   },
   "arch": {
-    "type": "SepDiffConditionalModel",
+    "type": "Sepformer5Model",
     "args": {
     }
   },
@@ -25,9 +25,9 @@
       "num_workers": 0,
       "datasets": [
        {
-          "type": "LibriMixDataset",
+          "type": "Libri5MixDataset",
           "args": {
-            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
+            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri5Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
             "maxlen": 65536
           }
         }
@@ -38,9 +38,9 @@
       "num_workers": 0,
       "datasets": [
        {
-          "type": "LibriMixDataset",
+          "type": "Libri5MixDataset",
           "args": {
-            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_test_mix_clean.csv",
+            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri5Mix/wav16k/max/metadata/mixture_test_mix_clean.csv",
             "maxlen": 65536
           }
         }

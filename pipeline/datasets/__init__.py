@@ -4,7 +4,7 @@ from pipeline.datasets.librispeech_dataset import LibrispeechDataset
 #from pipeline.datasets.ljspeech_dataset import LJspeechDataset
 #from pipeline.datasets.common_voice import CommonVoiceDataset
 from .source_separation import SourceSeparationDataset
-from .librimix_dataset import LibriMixDataset
+from .librimix_dataset import Libri2MixDataset, Libri5MixDataset
 
 __all__ = [
   "LibrispeechDataset",
@@ -13,5 +13,6 @@ __all__ = [
   #"LJspeechDataset",
   #"CommonVoiceDataset",
   "SourceSeparationDataset",
-  "LibriMixDataset",
+  "Libri2MixDataset",
+  "Libri5MixDataset",
 ]
