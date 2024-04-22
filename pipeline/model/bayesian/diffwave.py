@@ -142,7 +142,7 @@ class DiffWaveDiffusionTuned(DenoisingDiffusion):
       excess = audios.sum(0) - initial_mixture_audio[..., :audios.shape[-1]]
       discrepancy = audios - initial_src_approximations[..., :audios.shape[-1]]
       #print(f'{noises_pred=}, {excess=}, {discrepancy=}')
-      audios = c1 * (audios - c2 * (noises_pred + 10.0 * excess + 0.0 * discrepancy))
+      audios = c1 * (audios - c2 * (noises_pred + 0.0 * excess - 10.0 * discrepancy))
       # add variance
       if n > 0:
         noises = torch.randn_like(audios)

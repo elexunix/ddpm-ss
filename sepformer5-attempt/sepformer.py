@@ -21,12 +21,14 @@ class Pretrained(nn.Module):
 
 
 class SepformerModel(Pretrained):
+  def __init__(self, hparams):
+    super().__init__(modules=hparams['modules'], hparams=hparams)
   def separate_batch(self, mix):
     raise NotImplementedError("speechbrain/pretrained/interfaces.py:2184")
   def forward(self, mix):
     return self.separate_batch(mix)
 
 
-model = SepformerModel(modules=hparams['modules'], hparams=hparams)
+model = SepformerModel(hparams)
 print('model with', sum(p.numel() for p in model.parameters()), 'parameters')
 print('training:', model.training, '!!')

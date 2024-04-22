@@ -7,7 +7,7 @@
 
 # Parameters
 sample_rate: 8000
-num_spks: 3
+num_spks: 5
 
 # Specifying the network
 Encoder: !new:speechbrain.lobes.models.dual_path.Encoder
@@ -61,6 +61,3 @@ pretrainer: !new:speechbrain.utils.parameter_transfer.Pretrainer
     masknet: !ref <MaskNet>
     encoder: !ref <Encoder>
     decoder: !ref <Decoder>
-
-
-
