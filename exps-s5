@@ -1,0 +1,4 @@
+    lr0   ep  ep_len  gamma   sisdr_test
+    1e-2  6   300     0.999   -6.378
+    1e-3  1   3000    0.9999  -6.314
+245 1e-4  6   3000    0.9999  -6.084  but plots clearly show steady training
