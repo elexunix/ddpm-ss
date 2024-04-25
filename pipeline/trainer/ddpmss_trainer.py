@@ -299,7 +299,9 @@ class DDPMSSTrainer(BaseTrainer):
     p1t2 = self.sisdr(pred1, tgt2)
     p2t1 = self.sisdr(pred2, tgt1)
     p2t2 = self.sisdr(pred2, tgt2)
-    sisdr = torch.stack([(p1t1 + p2t2) / 2, (p1t2 + p2t1) / 2]).max(1)[0].mean(0)  # mean_{over batch} max_{over matchings} average_{in pair} SISDR
+    #print(f'{p1t1.shape=}')
+    #print(f'{torch.stack([(p1t1 + p2t2) / 2, (p1t2 + p2t1) / 2]).shape=}')
+    sisdr = torch.stack([(p1t1 + p2t2) / 2, (p1t2 + p2t1) / 2]).max(0)[0].mean(0)  # mean_{over batch} max_{over matchings} average_{in pair} SISDR
       #if sisdr > best_sisdr:
         #print(f'{k=}, {sisdr.item()=}')
         #best_sisdr = sisdr

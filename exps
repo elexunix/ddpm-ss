@@ -9,9 +9,14 @@
 191 10  10  15.614
 192 30  30  15.915
 195 100 100 15.971
-196 10  0.0 (failed: -17.367)
-196 10  0.0
-
+196 10  0.0 training failed
+197 10  0.0 15.924
+199 0.0 10  15.948
+200 -10 0.0 15.862
+201 0.0 -10 training failed
+242 0.0 -10 16.019
+243 0.0 -10 training failed
+246 0.0 -10 15.848
 
 b in D_b  =>  eval(m1, b) ~ N(15.9, 6)
 b in D_b  =>  eval(m2, b) ~ N(15.8, 7)
@@ -20,3 +25,9 @@ n = 375
 eval(m1, T) ~ N(15.9, 6/sqrt(n)) = N(15.9, 0.3^2)
 eval(m2, T) ~ N(15.8, 7/sqrt(n)) = N(15.8, 0.35^2)
 eval(m1, T) = eval(m2, T) + eps
+
+
+after critical bug fix:
+258 1e-2  0.0 0.0 12.915   4 epochs, since no progress
+260 1e-3  0.0 0.0 12.915   6 epochs
+
