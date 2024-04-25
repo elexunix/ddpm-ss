@@ -18,6 +18,7 @@
 243 0.0 -10 training failed
 246 0.0 -10 15.848
 
+
 b in D_b  =>  eval(m1, b) ~ N(15.9, 6)
 b in D_b  =>  eval(m2, b) ~ N(15.8, 7)
 T = {b1, .., bn} ~ D_b^n
