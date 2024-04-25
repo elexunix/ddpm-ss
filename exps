@@ -31,3 +31,13 @@ after critical bug fix:
 258 1e-2  0.0 0.0 12.915   4 epochs, since no progress
 260 1e-3  0.0 0.0 12.915   6 epochs
 
+plain sepdiff:
+262 1e-3  2       12.806
+plain sepformer:
+267       -       12.839    audio totally fine
+plain sepformer+diffusion:
+272       -       -30.062
+baseline:
+274 1e-2  0.999   6   12.930
+275 1e-1  0.999   1   -24.461
+276 1e-3  0.999   1   12.853
