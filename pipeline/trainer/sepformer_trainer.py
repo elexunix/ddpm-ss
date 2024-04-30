@@ -241,8 +241,13 @@ class Sepformer5Trainer(BaseTrainer):
       torch.stack([self.sisdr(pred[i], tgt[j]) for j in range(Nsp)])
       for i in range(Nsp)
     ])
+    #print('C', sisdr_matrix.shape, torch.stack([
+    #  sum(sisdr_matrix[i, sigma[i]] for i in range(Nsp)) / Nsp
+    #  for sigma in itertools.permutations(range(Nsp))
+    #]).shape)
+    # "C torch.Size([5, 5, 4, 1]) torch.Size([120, 4, 1])"
     sisdr = torch.stack([
       sum(sisdr_matrix[i, sigma[i]] for i in range(Nsp)) / Nsp
       for sigma in itertools.permutations(range(Nsp))
-    ]).max(1)[0].mean(0)  # mean_{over batch} max_{over matchings} average_{in pair} SISDR
+    ]).max(0)[0].mean(0)  # mean_{over batch} max_{over matchings} average_{in pair} SISDR
     return {'sisdr': sisdr, 'loss': -sisdr}

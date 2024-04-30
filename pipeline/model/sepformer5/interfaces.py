@@ -1,3 +1,4 @@
+import numpy as np
 import torch, torch.nn as nn
 from types import SimpleNamespace
 #from speechbrain.pretrained import Pretrained
@@ -73,6 +74,37 @@ class SepformerSeparation5(Pretrained):
   torch.Size([1, 400, 2])
   """
   MODULES_NEEDED = ["encoder", "masknet", "decoder"]
+  def __init__(self, sepformer3_ckpt, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    encoder, masknet, decoder = self.mods['encoder'], self.mods['masknet'], self.mods['decoder']
+    #to_be_freezed = [encoder, decoder]
+    #to_be_freezed += [masknet.conv1d, masknet.dual_mdl, masknet.output, masknet.output_gate]
+    to_be_trained = [masknet.conv2d, masknet.end_conv1x1]
+    #print([type(tbf) for tbf in to_be_freezed])
+    init_weights_dict = sepformer3_ckpt.state_dict()
+    for name in init_weights_dict:
+      print('init has', name)
+    for name, p in self.named_parameters():
+      p.requires_grad = False
+      if name in init_weights_dict:
+        print('trying to init', name, 'from pretrained...', end=' ')
+        if p.shape == init_weights_dict[name].shape:
+          p.copy_(init_weights_dict[name])
+          #p.requires_grad = False
+          p.requires_grad = True
+          print('success!')
+        else:
+          print('shape mismatched for', name, 'so this is one of the guys to train')
+          p.requires_grad = True
+      else:
+        print('ERROR', name, 'not found in pretrained model from which we init!')
+        quit(57)
+    for name, p in self.named_parameters():
+      if p.requires_grad:
+        print('training parameter', name, 'shape', p.shape)
+    cnt_trained = sum(np.prod(p.shape) for p in self.parameters() if p.requires_grad)
+    print('Total number of trainable parameters:', cnt_trained)
+    #assert cnt_trained == 328960
 
   def separate_batch(self, mix):
     #print(f'SepformerSeparation5 got {mix.shape=}')

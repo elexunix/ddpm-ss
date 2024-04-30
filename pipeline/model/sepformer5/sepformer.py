@@ -1,5 +1,5 @@
 import torch, torch.nn as nn
-#from speechbrain.pretrained import SepformerSeparation as sepformer
+from speechbrain.pretrained import SepformerSeparation as sepformer
 from .interfaces import SepformerSeparation5
 import speechbrain
 import torchaudio
@@ -13,12 +13,12 @@ class Sepformer5Model(nn.Module):
     self.resampler_16k8k = torchaudio.transforms.Resample(orig_freq=16000, new_freq=8000)
     self.resampler_8k16k = torchaudio.transforms.Resample(orig_freq=8000, new_freq=16000)
 
-    #model = speechbrain.pretrained.SepformerSeparation.from_hparams(source='speechbrain/sepformer-wsj03mix', savedir='pretrained-models/sepformer-wsj03mix')
+    sepformer3_pretrained = speechbrain.pretrained.SepformerSeparation.from_hparams(source='speechbrain/sepformer-wsj03mix', savedir='pretrained-models/sepformer-wsj03mix')
     current_dir = Path(__file__).resolve().parent
     hparams = load_hyperpyyaml(open(current_dir / 'hyperparams.yaml'))
     #pretrained = hparams['pretrainer']
     #speechbrain.pretrained.SepformerSeparation(hparams['modules'], hparams)
-    self.model = SepformerSeparation5(modules=hparams['modules'], hparams=hparams)
+    self.model = SepformerSeparation5(sepformer3_pretrained, modules=hparams['modules'], hparams=hparams)
     print('model with', sum(p.numel() for p in self.model.parameters()), 'parameters')
     print('training:', self.model.training, '!!')
 
