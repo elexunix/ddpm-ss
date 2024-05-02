@@ -17,6 +17,7 @@
   "arch": {
     "type": "SepDiffConditionalModel",
     "args": {
+      "Nsp": 3
     }
   },
   "data": {
@@ -25,9 +26,9 @@
       "num_workers": 0,
       "datasets": [
        {
-          "type": "Libri2MixDataset",
+          "type": "Libri3MixDataset",
           "args": {
-            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
+            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri3Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
             "maxlen": 65536
           }
         }
@@ -38,9 +39,9 @@
       "num_workers": 0,
       "datasets": [
        {
-          "type": "Libri2MixDataset",
+          "type": "Libri3MixDataset",
           "args": {
-            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_test_mix_clean.csv",
+            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri3Mix/wav16k/max/metadata/mixture_test_mix_clean.csv",
             "maxlen": 65536
           }
         }
@@ -66,6 +67,7 @@
     }
   },
   "trainer": {
+    "Nsp": 3,
     "epochs": 6,
     "log_interval": 60,
     "save_dir": "saved/",

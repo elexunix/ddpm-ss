@@ -54,6 +54,7 @@ def main(config):
   lr_scheduler = config.init_obj(config["lr_scheduler"], torch.optim.lr_scheduler, optimizer)
 
   trainer = Trainer(
+    config["trainer"].get("Nsp"),
     model,
     metrics,
     optimizer,
