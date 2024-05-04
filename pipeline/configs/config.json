@@ -22,7 +22,7 @@
   },
   "data": {
     "train": {
-      "batch_size": 8,
+      "batch_size": 4,
       "num_workers": 0,
       "datasets": [
        {
@@ -35,7 +35,7 @@
       ]
     },
     "val": {
-      "batch_size": 8,
+      "batch_size": 4,
       "num_workers": 0,
       "datasets": [
        {
@@ -63,21 +63,21 @@
   "lr_scheduler": {
     "type": "ExponentialLR",
     "args": {
-      "gamma": 0.999
+      "gamma": 0.9999
     }
   },
   "trainer": {
     "Nsp": 3,
     "epochs": 6,
-    "log_interval": 60,
+    "log_interval": 600,
     "save_dir": "saved/",
-    "save_period": 20,
+    "save_period": 200,
     "verbosity": 2,
     "monitor": "min val_loss",
     "early_stop": 100,
     "visualize": "wandb",
     "wandb_project": "ddpmss_project",
-    "len_epoch": 300,
+    "len_epoch": 3000,
     "grad_norm_clip": 10
   }
 }

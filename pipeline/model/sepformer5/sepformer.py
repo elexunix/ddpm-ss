@@ -1,50 +1,33 @@
-#from speechbrain.pretrained import SepformerSeparation as sepformer
+import torch, torch.nn as nn
+from speechbrain.pretrained import SepformerSeparation as sepformer
 from .interfaces import SepformerSeparation5
+import speechbrain
 import torchaudio
+from hyperpyyaml import load_hyperpyyaml
+from pathlib import Path
 
 
-class Sepformer5Model():
+class Sepformer5Model(nn.Module):
   def __init__(self):
+    super().__init__()
     self.resampler_16k8k = torchaudio.transforms.Resample(orig_freq=16000, new_freq=8000)
     self.resampler_8k16k = torchaudio.transforms.Resample(orig_freq=8000, new_freq=16000)
-    self.model = SepformerSeparation5.from_hparams(source='speechbrain/sepformer-wsj03mix', savedir='pretrained-models/sepformer-wsj03mix')
+
+    sepformer3_pretrained = speechbrain.pretrained.SepformerSeparation.from_hparams(source='speechbrain/sepformer-wsj03mix', savedir='pretrained-models/sepformer-wsj03mix')
+    current_dir = Path(__file__).resolve().parent
+    hparams = load_hyperpyyaml(open(current_dir / 'hyperparams.yaml'))
+    #pretrained = hparams['pretrainer']
+    #speechbrain.pretrained.SepformerSeparation(hparams['modules'], hparams)
+    self.model = SepformerSeparation5(sepformer3_pretrained.state_dict(), modules=hparams['modules'], hparams=hparams)
+    print('model with', sum(p.numel() for p in self.model.parameters()), 'parameters')
+    print('training:', self.model.training, '!!')
 
   def forward(self, mixture_at_16khz):
-    mixture_at_8khz = self.resampler16k8k(mixture_at_16khz)
+    mixture_at_8khz = self.resampler_16k8k(mixture_at_16khz)
     est_sources = self.model(mixture_at_8khz)
-    assert est_sources.ndim == 3
-    assert est_sources.shape[-1] == 5  # here are the 5 speakers
-    predicted = self.resampler_8k16k(est_sources.permute(-1, 0, 1))
-    return {f'predicted{i}' : predicted[i] for i in range(5)}
-import torch, torch.nn as nn
-import speechbrain.pretrained
-from hyperpyyaml import load_hyperpyyaml
-
-
-#model = speechbrain.pretrained.SepformerSeparation.from_hparams(source='speechbrain/sepformer-wsj03mix', savedir='pretrained-models/sepformer-wsj03mix')
-
-hparams = load_hyperpyyaml(open('hyperparams.yaml'))
-#pretrained = hparams['pretrainer']
-#speechbrain.pretrained.SepformerSeparation(hparams['modules'], hparams)
-
-
-class Pretrained(nn.Module):
-  def __init__(self, modules, hparams):
-    super().__init__()
-    self.mods = nn.ModuleDict(modules)
-    self.device = 'cpu'
-    for module in self.mods.values():
-      if module is not None:
-        module.to(self.device)
-
-
-class SepformerModel(Pretrained):
-  def separate_batch(self, mix):
-    raise NotImplementedError("speechbrain/pretrained/interfaces.py:2184")
-  def forward(self, mix):
-    return self.separate_batch(mix)
-
-
-model = SepformerModel(modules=hparams['modules'], hparams=hparams)
-print('model with', sum(p.numel() for p in model.parameters()), 'parameters')
-print('training:', model.training, '!!')
+    B, L, Nsp = est_sources.shape  # Sepformer-style shape
+    assert Nsp == 5  # here are the 5 speakers
+    predicted = self.resampler_8k16k(est_sources.permute(-1, 0, 1).contiguous()).unsqueeze(-2)
+    L2 = predicted.shape[-1]
+    assert predicted.shape == (Nsp, B, 1, L2)
+    return {f'predicted{i+1}' : predicted[i] for i in range(5)}

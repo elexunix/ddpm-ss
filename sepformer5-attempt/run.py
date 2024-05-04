@@ -1,18 +1,21 @@
 import torchaudio
 from torchmetrics import ScaleInvariantSignalDistortionRatio as SISDR
-from sepformer import SepformerModel
+from hyperpyyaml import load_hyperpyyaml
+from sepformer import Sepformer5ModelPretrained as SepformerModel
 
 resampler = torchaudio.transforms.Resample(orig_freq=16000, new_freq=8000)
 
-model = SepformerModel()
+device = 'cuda'
+hparams = load_hyperpyyaml(open('hyperparams.yaml'))
+model = SepformerModel().to(device)
 
 mixture_path = 'mixture.wav'
 mixture, _16000 = torchaudio.load(mixture_path)
 assert _16000 == 16000
 mixture = resampler(mixture)  # otherwise you get funny results
-est_sources = model(mixture).detach().cpu()
+est_sources = model(mixture.to(device)).detach().cpu()
 print(mixture.shape, 'to', est_sources.shape)
-predicted1, predicted2, predicted3, predicted4, predicted5 = est_sources[:, :, 0], est_sources[:, :, 1], est_sources[:, :, 2]
+predicted1, predicted2, predicted3, predicted4, predicted5 = est_sources[:, :, 0], est_sources[:, :, 1], est_sources[:, :, 2], est_sources[:, :, 3], est_sources[:, :, 4]
 torchaudio.save('source1.wav', predicted1, 8000)
 torchaudio.save('source2.wav', predicted2, 8000)
 torchaudio.save('source3.wav', predicted3, 8000)

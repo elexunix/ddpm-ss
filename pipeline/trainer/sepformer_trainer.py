@@ -18,6 +18,9 @@ from pipeline.metric.utils import calc_cer, calc_wer
 from pipeline.utils import inf_loop, MetricTracker
 
 
+Nsp = 5  # warning: not only here at all!
+
+
 class Sepformer5Trainer(BaseTrainer):
   '''
   Sepformer3-based Sepformer5 Model trainer class
@@ -131,7 +134,10 @@ class Sepformer5Trainer(BaseTrainer):
     else:
       raise Exception("kek")
 
-    batch.update(self.compute_metrics(outputs['separated1'], outputs['separated2'], outputs['predicted1'], outputs['predicted2'], batch['target1'], batch['target2']))
+    batch.update(self.compute_metrics(
+      outputs['predicted1'], outputs['predicted2'], outputs['predicted3'], outputs['predicted4'], outputs['predicted5'],
+      batch['target1'], batch['target2'], batch['target3'], batch['target4'], batch['target5']
+    ))
     if is_train:
       batch['loss'].backward()
       self._clip_grad_norm()
@@ -231,12 +237,17 @@ class Sepformer5Trainer(BaseTrainer):
   def compute_metrics(self, pred1, pred2, pred3, pred4, pred5, tgt1, tgt2, tgt3, tgt4, tgt5):
     pred = [pred1, pred2, pred3, pred4, pred5]
     tgt = [tgt1, tgt2, tgt3, tgt4, tgt5]
-    sisdrs_matrix = torch.stack([
+    sisdr_matrix = torch.stack([
       torch.stack([self.sisdr(pred[i], tgt[j]) for j in range(Nsp)])
       for i in range(Nsp)
     ])
+    #print('C', sisdr_matrix.shape, torch.stack([
+    #  sum(sisdr_matrix[i, sigma[i]] for i in range(Nsp)) / Nsp
+    #  for sigma in itertools.permutations(range(Nsp))
+    #]).shape)
+    # "C torch.Size([5, 5, 4, 1]) torch.Size([120, 4, 1])"
     sisdr = torch.stack([
       sum(sisdr_matrix[i, sigma[i]] for i in range(Nsp)) / Nsp
       for sigma in itertools.permutations(range(Nsp))
-    ]).max(1)[0].mean(0)  # mean_{over batch} max_{over matchings} average_{in pair} SISDR
+    ]).max(0)[0].mean(0)  # mean_{over batch} max_{over matchings} average_{in pair} SISDR
     return {'sisdr': sisdr, 'loss': -sisdr}
