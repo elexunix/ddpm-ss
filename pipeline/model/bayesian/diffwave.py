@@ -139,9 +139,10 @@ class DiffWaveDiffusionTuned(DenoisingDiffusion):
       for audio, condition in zip(audios, conditions)])
       # mean
       #print(f'{audios.shape=}, {noises_pred.shape=}, now shifting using {initial_mixture_audio.shape=}, {initial_src_approximations.shape=}')
+      #print(f'{audios.sum(0)=}, {initial_mixture_audio=}')
       excess = audios.sum(0) - initial_mixture_audio[..., :audios.shape[-1]]
+      #print(f'{audios=}, {initial_src_approximations=}')
       discrepancy = audios - initial_src_approximations[..., :audios.shape[-1]]
-      #print(f'{noises_pred=}, {excess=}, {discrepancy=}')
       #print(f'{noises_pred=}, {excess=}, {discrepancy=}')
       audios = c1 * (audios - c2 * (noises_pred +0.0 * excess +0.0 * discrepancy))
       # add variance
