@@ -18,7 +18,7 @@ class Sepformer5Model(nn.Module):
     hparams = load_hyperpyyaml(open(current_dir / 'hyperparams.yaml'))
     #pretrained = hparams['pretrainer']
     #speechbrain.pretrained.SepformerSeparation(hparams['modules'], hparams)
-    self.model = SepformerSeparation5(sepformer3_pretrained, modules=hparams['modules'], hparams=hparams)
+    self.model = SepformerSeparation5(sepformer3_pretrained.state_dict(), modules=hparams['modules'], hparams=hparams)
     print('model with', sum(p.numel() for p in self.model.parameters()), 'parameters')
     print('training:', self.model.training, '!!')
 
