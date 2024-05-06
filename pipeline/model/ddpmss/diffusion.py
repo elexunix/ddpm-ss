@@ -19,12 +19,17 @@ class DiffusionModel(nn.Module):
   def forward(self, x):
     B, C, L = x.shape
     assert C == 1
-    x = F.pad(x, (0, (256 - x.shape[-1] % 256) % 256))  # ceils to 256
+    #x = F.pad(x, (0, (256 - x.shape[-1] % 256) % 256))  # ceils to 256
     mel = mel_spectogram(sample_rate=22050, hop_length=256, win_length=1024, n_fft=1024, n_mels=80, f_min=0, f_max=8000, power=1.0, normalized=False, norm="slaney", mel_scale="slaney", compression=True, audio=x)
     assert mel.ndim == 4
     mel = mel[:, :, :, :-1]
+    #print(f'{x.shape=}, {mel.shape=}')
+    #torchaudio.save('diffusion-input.wav', x[0].cpu(), 22050)
     x = torch.stack([
       self.diffwave.decode_batch(mel[i], hop_len=256, fast_sampling=True, fast_sampling_noise_schedule=[0.0001, 0.001, 0.01, 0.05, 0.2, 0.5])  # this guy apparently doesn't like batches..
       for i in range(B)
     ])
+    #torchaudio.save('diffusion-output.wav', x[0].cpu(), 22050)
+    #print('saved, hanging')
+    #while True: pass
     return x

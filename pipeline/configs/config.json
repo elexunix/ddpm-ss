@@ -1,5 +1,5 @@
 {
-  "name": "sepformer5",
+  "name": "bayesian",
   "n_gpu": 1,
   "preprocessing": {
     "sr": 16000,
@@ -15,8 +15,9 @@
     "spectrogram": []
   },
   "arch": {
-    "type": "Sepformer5Model",
+    "type": "SepDiffConditionalModel",
     "args": {
+      "Nsp": 3
     }
   },
   "data": {
@@ -25,9 +26,9 @@
       "num_workers": 0,
       "datasets": [
        {
-          "type": "Libri5MixDataset",
+          "type": "Libri3MixDataset",
           "args": {
-            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri5Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
+            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri3Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
             "maxlen": 65536
           }
         }
@@ -38,9 +39,9 @@
       "num_workers": 0,
       "datasets": [
        {
-          "type": "Libri5MixDataset",
+          "type": "Libri3MixDataset",
           "args": {
-            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri5Mix/wav16k/max/metadata/mixture_test_mix_clean.csv",
+            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri3Mix/wav16k/max/metadata/mixture_test_mix_clean.csv",
             "maxlen": 65536
           }
         }
@@ -50,7 +51,7 @@
   "optimizer": {
     "type": "Adam",
     "args": {
-      "lr": 1e-4
+      "lr": 1e-3
     }
   },
   "loss": {
@@ -66,6 +67,7 @@
     }
   },
   "trainer": {
+    "Nsp": 3,
     "epochs": 6,
     "log_interval": 600,
     "save_dir": "saved/",

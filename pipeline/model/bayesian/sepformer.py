@@ -5,12 +5,13 @@ from speechbrain.pretrained import SepformerSeparation as sepformer
 
 device = 'cuda'
 
-separator = sepformer.from_hparams(source='speechbrain/sepformer-wsj02mix', savedir='pretrained-models/sepformer-wsj02mix', run_opts={'device':device})
+separator = sepformer.from_hparams(source='speechbrain/sepformer-wsj03mix', savedir='pretrained-models/sepformer-wsj03mix', run_opts={'device':device})
 
 
 class SepformerModel(nn.Module):
-  def __init__(self):
+  def __init__(self, Nsp):
     super().__init__()
+    self.Nsp = Nsp
     self.dummy = nn.Linear(0, 0)
     self.resampler_16k8k = torchaudio.transforms.Resample(orig_freq=16000, new_freq=8000)
 
@@ -22,8 +23,13 @@ class SepformerModel(nn.Module):
     mixture = self.resampler_16k8k(mixture).to(self.device)  # warning: otherwise you'll get funny results
     # mixture.shape: (B, C=1, L)
     sources = separator(mixture[..., 0, :])  # separator : (B, L) -> (B, L, 2)  \o_O/
-    assert sources.ndim == 3
+    assert sources.ndim == 3  # really 3
+
+    assert self.Nsp == 3  # or rewrite this block
     source1 = sources[..., None, :, 0]  # (B, C=1, L)
     source2 = sources[..., None, :, 1]   # (B, C=1, L)
-    assert source1.ndim == 3
-    return torch.cat([source1, source2], 1)
+    source3 = sources[..., None, :, 2]   # (B, C=1, L)
+
+    assert source1.ndim == 3  # really 3
+    assert self.Nsp == 3  # or rewrite the return statement
+    return torch.cat([source1, source2, source3], 1)

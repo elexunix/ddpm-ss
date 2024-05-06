@@ -93,17 +93,20 @@ class SepDiffModel(nn.Module):
     assert C == 1
     with torch.no_grad():
       separated1, separated2 = self.separator(mixture)
-      s1, s2 = separated1.clone(), separated2.clone()
+      s1, s2 = self.resampler_8k16k(separated1), self.resampler_8k16k(separated2)
       denoised1 = self.denoiser(self.resampler_8k22k(separated1))
       denoised2 = self.denoiser(self.resampler_8k22k(separated2))
-    #return {"separated1": s1, "separated2": s2, "predicted1": separated1 + 0 * self.dummy, "predicted2": separated2}  # works!
+      denoised1 = self.fix_length(self.resampler_22k16k(denoised1), L, lenience=300)
+      denoised2 = self.fix_length(self.resampler_22k16k(denoised2), L, lenience=300)
+    #return {"separated1": s1, "separated2": s2, "predicted1": s1 + 0 * self.dummy, "predicted2": s2}  # works!
     #return {"separated1": s1, "separated2": s2, "predicted1": denoised1 + 0 * self.dummy, "predicted2": denoised2}  # doesn't work!
-
     with torch.no_grad():
-      separated1 = self.stft(self.resampler_8k16k(separated1))
-      separated2 = self.stft(self.resampler_8k16k(separated2))
-      denoised1 = self.stft(self.resampler_22k16k(denoised1))
-      denoised2 = self.stft(self.resampler_22k16k(denoised2))
+#      separated1 = self.stft(self.resampler_8k16k(separated1))
+#      separated2 = self.stft(self.resampler_8k16k(separated2))
+#      denoised1 = self.stft(self.resampler_22k16k(denoised1))
+#      denoised2 = self.stft(self.resampler_22k16k(denoised2))
+      separated1, separated2 = self.stft(s1), self.stft(s2)
+      denoised1, denoised2 = self.stft(denoised1), self.stft(denoised2)
     predicted1_angle = self.mixer_angle(separated1.angle(), denoised1.angle())
     predicted1_abs = self.mixer_abs(separated1.abs(), denoised1.abs())
     predicted2_angle = self.mixer_angle(separated2.angle(), denoised2.angle())
@@ -112,6 +115,6 @@ class SepDiffModel(nn.Module):
     predicted2 = torch.view_as_complex(predicted2_abs.unsqueeze(-1) * torch.stack([torch.cos(predicted2_angle), torch.sin(predicted2_angle)], -1))
     predicted1 = self.istft(predicted1)
     predicted2 = self.istft(predicted2)
-    predicted1 = self.fix_length(predicted1, L, lenience=300)
-    predicted2 = self.fix_length(predicted2, L, lenience=300)
+    predicted1 = self.fix_length(predicted1, L, lenience=0)
+    predicted2 = self.fix_length(predicted2, L, lenience=0)
     return {"separated1": s1, "separated2": s2, "predicted1": predicted1, "predicted2": predicted2}

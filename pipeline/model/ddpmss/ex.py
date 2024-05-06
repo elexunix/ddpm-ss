@@ -8,9 +8,8 @@ resampler = torchaudio.transforms.Resample(orig_freq=16000, new_freq=22050)
 
 mixture_path = 'mixture.wav'
 mixture, _16000 = torchaudio.load(mixture_path)
-#assert _16000 == 16000
-#mixture = resampler(mixture)  # otherwise you get funny results
-assert _16000 == 22050  # already
+assert _16000 == 16000
+mixture = resampler(mixture)  # otherwise you get funny results
 
 device = 'cuda'
 #audio = sb.dataio.dataio.read_audio(mixture_path)
