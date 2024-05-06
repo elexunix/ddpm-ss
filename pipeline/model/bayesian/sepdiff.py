@@ -78,17 +78,20 @@ class SepDiffConditionalModel(nn.Module):
     assert C == 1
     with torch.no_grad():
       separated = self.resampler_8k22k(self.separator(mixture))
-      #print(f'{mixture.shape=}, {separated.shape=}')
       assert separated.ndim == 3
       assert separated.shape[1] == self.Nsp
-      s = separated.clone()
+      s = self.fix_length(self.resampler_22k16k(separated), mixture.shape[-1], lenience=1)
+#    return dict(
+#      **{f"separated{i+1}": s[:, i:i+1, :] for i in range(3)},
+#      **{f"predicted{i+1}": s[:, i:i+1, :] + 0 * self.dummy for i in range(3)}
+#    )
+    with torch.no_grad():
       #denoised1 = self.denoiser(self.resampler_8k22k(separated1))
-      #denoised2 = self.denoiser(self.resampler_8k22k(separated2))
       denoised = self.denoiser(separated, self.resampler_16k22k(mixture))
+      #print(f'{separated.shape=}, {denoised.shape=}')
       assert denoised.ndim == 3
       assert denoised.shape[1] == self.Nsp
       denoised = self.fix_length(denoised, separated.shape[-1], lenience=256)
-      #return {"separated1": s1, "separated2": s2, "predicted1": separated1 + 0 * self.dummy, "predicted2": separated2}  # works!
       separated = self.resampler_22k16k(separated)
       denoised = self.resampler_22k16k(denoised)
       assert separated.ndim == 3 and separated.shape[1] == self.Nsp
