@@ -1,5 +1,5 @@
-#from .sepformer import Sepformer5Model
+from .sepformer import Sepformer5Model
 
-#__all__ = [
-#  "Sepformer5Model",
-#]
+__all__ = [
+  "Sepformer5Model",
+]

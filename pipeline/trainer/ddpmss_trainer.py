@@ -58,7 +58,7 @@ class DDPMSSTrainer(BaseTrainer):
 
   @staticmethod
   def move_batch_to_device(batch, device: torch.device):
-    for tensor_for_gpu in ['mixed', 'target1', 'target2', 'target3']:
+    for tensor_for_gpu in ['mixed'] + [f'target{i+1}' for i in range(5)]:
       batch[tensor_for_gpu] = batch[tensor_for_gpu].to(device)
     return batch
 
@@ -142,7 +142,8 @@ class DDPMSSTrainer(BaseTrainer):
 
     #batch['log_probs'] = F.log_softmax(batch['logits'], dim=-1)
     #batch['log_probs_length'] = self.model.transform_input_lengths(batch['spectrogram_length'])
-    batch.update(self.compute_metrics(outputs['separated1'], outputs['separated2'], outputs['separated3'], outputs['predicted1'], outputs['predicted2'], outputs['predicted3'], batch['target1'], batch['target2'], batch['target3']))
+    #batch.update(self.compute_metrics(outputs['separated1'], outputs['separated2'], outputs['separated3'], outputs['predicted1'], outputs['predicted2'], outputs['predicted3'], batch['target1'], batch['target2'], batch['target3']))
+    batch.update(self.compute_metrics(*[outputs[f'separated{i+1}'] for i in range(5)], *[outputs[f'predicted{i+1}'] for i in range(5)], *[batch[f'target{i+1}'] for i in range(5)]))
     if is_train:
       batch['loss'].backward()
       self._clip_grad_norm()
@@ -274,7 +275,7 @@ class DDPMSSTrainer(BaseTrainer):
       result[i, :l] = xs[i, :l]
     return result
 
-  def compute_metrics(self, sep1, sep2, sep3, pred1, pred2, pred3, tgt1, tgt2, tgt3):
+  def compute_metrics(self, sep1, sep2, sep3, sep4, sep5, pred1, pred2, pred3, pred4, pred5, tgt1, tgt2, tgt3, tgt4, tgt5):
     #random_number = np.random.randint(1000000)
     #print(f'{random_number=}')
     #for name, audio in ('p1', pred1), ('p2', pred2), ('s1', sep1), ('s2', sep2), ('t1', tgt1), ('t2', tgt2):
@@ -290,8 +291,8 @@ class DDPMSSTrainer(BaseTrainer):
     #sisdr = torch.stack([(p1t1 + p2t2) / 2, (p1t2 + p2t1) / 2]).max(0)[0].mean(0)  # mean_{over batch} max_{over matchings} average_{in pair} SISDR
     #print(f'{p1t1=}, {p1t2=}, {p2t1=}, {p2t2=}, {torch.stack([(p1t1 + p2t2) / 2, (p1t2 + p2t1) / 2]).max(0)=}, {sisdr=}')
       #if sisdr > best_sisdr:
-    pred = [pred1, pred2, pred3]
-    tgt = [tgt1, tgt2, tgt3]
+    pred = [pred1, pred2, pred3, pred4, pred5]
+    tgt = [tgt1, tgt2, tgt3, tgt4, tgt5]
     sisdr_matrix = torch.stack([
       torch.stack([self.sisdr(pred[i], tgt[j]) for j in range(self.Nsp)])
       for i in range(self.Nsp)

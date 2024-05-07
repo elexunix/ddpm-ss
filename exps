@@ -70,6 +70,8 @@ bayesian exps (1e-3  8 0.999   6):
 338   0.0   -1.0  12.306
 339   0.0   0.0   12.836  1 epoch only
 
+bs 8->4 probably somewhere here, unfortunately this transition is not recorded
+
 3sp exps (same hparams):
 368   0.0   0.0   8.305   sounds good!
 372   1.0   0.0   9.717
@@ -85,5 +87,17 @@ bayesian exps (1e-3  8 0.999   6):
 414   0.0   0.0   9.709   epoch len 3000->1500, gamma .99995, lr 3e-3
 415   0.0   0.0   9.699   epoch len 500.
 416   0.0 -10.0   9.650   epoch len 500
+wtf why -10.. checkout back and rerun
+
+5sp exps (3e-3  4 .99998  6 500):
+429   0.0   0.0   -13.568
+
+5sp sepformer only:
+443               4.068
+
+5sp exps (3e-3  4 .9994  3 1000):
+449   0.0   0.0   4.305
+451   1.0   0.0   4.297
+(maybe 6 epochs better? but probably not)
 
 0.0   10.0  

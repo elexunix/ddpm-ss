@@ -2,7 +2,8 @@ import torch, torch.nn as nn, torch.nn.functional as F
 import torchaudio
 
 from .diffusion import DiffusionModel
-from .sepformer import SepformerModel
+#from .sepformer import SepformerModel
+from .sepformer5 import Sepformer5ModelPretrained as SepformerModel
 
 
 class MixerModel(nn.Module):
@@ -82,8 +83,8 @@ class SepDiffConditionalModel(nn.Module):
       assert separated.shape[1] == self.Nsp
       s = self.fix_length(self.resampler_22k16k(separated), mixture.shape[-1], lenience=1)
 #    return dict(
-#      **{f"separated{i+1}": s[:, i:i+1, :] for i in range(3)},
-#      **{f"predicted{i+1}": s[:, i:i+1, :] + 0 * self.dummy for i in range(3)}
+#      **{f"separated{i+1}": s[:, i:i+1, :] for i in range(self.Nsp)},
+#      **{f"predicted{i+1}": s[:, i:i+1, :] + 0 * self.dummy for i in range(self.Nsp)}
 #    )
     with torch.no_grad():
       #denoised1 = self.denoiser(self.resampler_8k22k(separated1))
