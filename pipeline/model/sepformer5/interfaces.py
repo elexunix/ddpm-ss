@@ -82,8 +82,8 @@ class SepformerSeparation5(Pretrained):
     to_be_trained = [masknet.conv2d, masknet.end_conv1x1]
     #print([type(tbf) for tbf in to_be_freezed])
     init_weights_dict = sepformer3_ckpt_state_dict
-    for name in init_weights_dict:
-      print('init has', name)
+    #for name in init_weights_dict:
+    #  print('init has', name)
     for name, p in self.named_parameters():
       p.requires_grad = False
       if name in init_weights_dict:

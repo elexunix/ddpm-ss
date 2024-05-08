@@ -1,15 +1,14 @@
 from pathlib import Path
-from random import shuffle
-import PIL
-import numpy as np
-import pandas as pd
+import random, PIL, numpy as np, pandas as pd
 import torch, torch.nn as nn, torch.nn.functional as F
 import torchaudio
 from torchvision.transforms import ToTensor
 #from torchmetrics import ScaleInvariantSignalDistortionRatio as SISDR  # it's a scam; for more scam, please visit https://github.com/elexunix/scam
 from torchmetrics.functional import scale_invariant_signal_distortion_ratio as SISDR
+from torchmetrics.audio import PerceptualEvaluationSpeechQuality as PESQ, ShortTimeObjectiveIntelligibility as STOI
 from tqdm import tqdm
 import itertools
+from multiprocessing import Pool
 
 from pipeline.base import BaseTrainer
 from pipeline.base.base_text_encoder import BaseTextEncoder
@@ -51,10 +50,13 @@ class DDPMSSTrainer(BaseTrainer):
     self.evaluation_dataloaders = {k: v for k, v in dataloaders.items() if k != 'train'}
     self.lr_scheduler = lr_scheduler
     self.log_step = self.config['trainer']['log_interval']
-    self.train_metrics = MetricTracker('sisdr', 'loss', 'grad norm', *[m.name for m in self.metrics], writer=self.writer)
-    self.evaluation_metrics = MetricTracker('sisdr', 'loss', *[m.name for m in self.metrics], writer=self.writer)
+    self.train_metrics = MetricTracker('sisdr', 'loss', 'grad_norm', *[m.name for m in self.metrics], writer=self.writer)
+    self.train_metrics_sometimes = MetricTracker('pesq', 'stoi', *[m.name for m in self.metrics], writer=self.writer)  # not used
+    self.evaluation_metrics = MetricTracker('sisdr', 'pesq', 'stoi', 'loss', *[m.name for m in self.metrics], writer=self.writer)
     #self.sisdr = SISDR().to(device)
     self.sisdr = SISDR
+    self.pesq = PESQ(fs=16000, mode='wb')
+    self.stoi = STOI(fs=16000)
 
   @staticmethod
   def move_batch_to_device(batch, device: torch.device):
@@ -97,7 +99,7 @@ class DDPMSSTrainer(BaseTrainer):
           continue
         else:
           raise e
-      self.train_metrics.update('grad norm', self.get_grad_norm())
+      self.train_metrics.update('grad_norm', self.get_grad_norm())
       if batch_idx % self.log_step == 0:
         self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
         self.logger.debug(
@@ -143,7 +145,7 @@ class DDPMSSTrainer(BaseTrainer):
     #batch['log_probs'] = F.log_softmax(batch['logits'], dim=-1)
     #batch['log_probs_length'] = self.model.transform_input_lengths(batch['spectrogram_length'])
     #batch.update(self.compute_metrics(outputs['separated1'], outputs['separated2'], outputs['separated3'], outputs['predicted1'], outputs['predicted2'], outputs['predicted3'], batch['target1'], batch['target2'], batch['target3']))
-    batch.update(self.compute_metrics(*[outputs[f'separated{i+1}'] for i in range(5)], *[outputs[f'predicted{i+1}'] for i in range(5)], *[batch[f'target{i+1}'] for i in range(5)]))
+    batch.update(self.compute_metrics(*[outputs[f'separated{i+1}'] for i in range(5)], *[outputs[f'predicted{i+1}'] for i in range(5)], *[batch[f'target{i+1}'] for i in range(5)], compute_aux=not is_train))
     if is_train:
       batch['loss'].backward()
       self._clip_grad_norm()
@@ -153,6 +155,9 @@ class DDPMSSTrainer(BaseTrainer):
 
     metrics.update('loss', batch['loss'].item())
     metrics.update('sisdr', batch['sisdr'].item())
+    if not is_train:
+      metrics.update('pesq', batch['pesq'].item())
+      metrics.update('stoi', batch['stoi'].item())
     #metrics.update('clf accuracy', batch['clf_accuracy'].item())
     for met in self.metrics:
       metrics.update(met.name, met(**batch))
@@ -222,7 +227,7 @@ class DDPMSSTrainer(BaseTrainer):
 #    argmax_texts_raw = [self.text_encoder.decode(inds) for inds in argmax_inds]
 #    argmax_texts = [self.text_encoder.ctc_decode(inds) for inds in argmax_inds]
 #    tuples = list(zip(argmax_texts, text, argmax_texts_raw, audio_path))
-#    shuffle(tuples)
+#    random.shuffle(tuples)
 #    rows = {}
 #    for pred, target, raw_pred, audio_path in tuples[:examples_to_log]:
 #      target = BaseTextEncoder.normalize_text(target)
@@ -275,30 +280,60 @@ class DDPMSSTrainer(BaseTrainer):
       result[i, :l] = xs[i, :l]
     return result
 
-  def compute_metrics(self, sep1, sep2, sep3, sep4, sep5, pred1, pred2, pred3, pred4, pred5, tgt1, tgt2, tgt3, tgt4, tgt5):
+  def compute_metrics(self, sep1, sep2, sep3, sep4, sep5, pred1, pred2, pred3, pred4, pred5, tgt1, tgt2, tgt3, tgt4, tgt5, compute_aux):
     #random_number = np.random.randint(1000000)
     #print(f'{random_number=}')
     #for name, audio in ('p1', pred1), ('p2', pred2), ('s1', sep1), ('s2', sep2), ('t1', tgt1), ('t2', tgt2):
     #  print(name + '.shape=' + str(audio.shape), f'{audio=}')
     #  torchaudio.save('folder/' + str(random_number) + '-' + name + '.wav', audio.cpu()[0, :], 16000)
-
-    #p1t1 = self.sisdr(pred1, tgt1)
-    #p1t2 = self.sisdr(pred1, tgt2)
-    #p2t1 = self.sisdr(pred2, tgt1)
-    #p2t2 = self.sisdr(pred2, tgt2)
-    #print(f'{p1t1.shape=}')
-    #print(f'{torch.stack([(p1t1 + p2t2) / 2, (p1t2 + p2t1) / 2]).shape=}')
+    #p2t1 = self.sisdr(pred2, tgt1) ...
     #sisdr = torch.stack([(p1t1 + p2t2) / 2, (p1t2 + p2t1) / 2]).max(0)[0].mean(0)  # mean_{over batch} max_{over matchings} average_{in pair} SISDR
-    #print(f'{p1t1=}, {p1t2=}, {p2t1=}, {p2t2=}, {torch.stack([(p1t1 + p2t2) / 2, (p1t2 + p2t1) / 2]).max(0)=}, {sisdr=}')
-      #if sisdr > best_sisdr:
-    pred = [pred1, pred2, pred3, pred4, pred5]
-    tgt = [tgt1, tgt2, tgt3, tgt4, tgt5]
-    sisdr_matrix = torch.stack([
-      torch.stack([self.sisdr(pred[i], tgt[j]) for j in range(self.Nsp)])
-      for i in range(self.Nsp)
-    ])
-    sisdr = torch.stack([
+    B, L = pred1.shape[0], pred1.shape[-1]
+    preds = torch.stack([pred1, pred2, pred3, pred4, pred5])
+    tgts = torch.stack([tgt1, tgt2, tgt3, tgt4, tgt5])
+    #print(f'{preds.shape=}, {tgts.shape=}')
+    assert preds.shape == tgts.shape == (self.Nsp, B, 1, L)
+    def metric_matrix(metric_fn):
+      return torch.stack([
+        #metric_fn(pred[i:i+1].repeat(self.Nsp, 1, 1, 1), tgt)  # pesq reduce is hard-coded, rendering it unusable in my case
+        torch.stack([metric_fn(pred, tgt).squeeze(-1) for tgt in tgts]) for pred in preds
+      ])
+    def metric_matrix_parallel_nograd(metric_fn):
+      with torch.no_grad():
+        with Pool(24) as p:
+          P = preds[None, :, ...].repeat(self.Nsp, 1, 1, 1, 1).view(self.Nsp**2 * B, *preds.shape[-2:]).cpu()
+          T = tgts[:, None, ...].repeat(1, self.Nsp, 1, 1, 1).view(self.Nsp**2 * B, *tgts.shape[-2:]).cpu()
+          assert P.shape == T.shape == (self.Nsp**2 * B, 1, L)
+          M = torch.stack(p.starmap(metric_fn, zip(P, T)))
+          return M.view(self.Nsp, self.Nsp, B)
+    sisdr_matrix = metric_matrix(self.sisdr)
+    if compute_aux:
+      pesq_matrix = metric_matrix_parallel_nograd(self.pesq)
+      stoi_matrix = metric_matrix_parallel_nograd(self.stoi)
+    #print(f'{sisdr_matrix.shape=}, {pesq_matrix.shape=}, {stoi_matrix.shape=}')
+    assert sisdr_matrix.shape == (self.Nsp, self.Nsp, B)
+    assert not compute_aux or pesq_matrix.shape == stoi_matrix.shape == (self.Nsp, self.Nsp, B)
+#    sisdr = torch.stack([
+#      sum(sisdr_matrix[i, sigma[i]] for i in range(self.Nsp)) / self.Nsp
+#      for sigma in itertools.permutations(range(self.Nsp))
+#    ]).max(0)[0].mean(0)  # mean_{over batch} max_{over matchings} average_{in permutation} SISDR
+    sisdr, sisdr_argmax = torch.stack([
       sum(sisdr_matrix[i, sigma[i]] for i in range(self.Nsp)) / self.Nsp
       for sigma in itertools.permutations(range(self.Nsp))
-    ]).max(0)[0].mean(0)  # mean_{over batch} max_{over matchings} average_{in pair} SISDR
-    return {'sisdr': sisdr, 'loss': -sisdr}
+    ]).max(0)  # max_{over matchings} average_{in permutation} SISDR
+    all_permutations = torch.tensor(list(itertools.permutations(range(self.Nsp))))
+    sigmas = all_permutations[sisdr_argmax.cpu()]
+    if compute_aux:
+      pesq = torch.stack([sum(pesq_matrix[spi, sigma[spi], s] for spi in range(self.Nsp)) / self.Nsp for s, sigma in enumerate(sigmas)])
+      stoi = torch.stack([sum(stoi_matrix[spi, sigma[spi], s] for spi in range(self.Nsp)) / self.Nsp for s, sigma in enumerate(sigmas)])
+    #print(f'{sisdr_matrix.shape=}, {pesq_matrix.shape=}, {stoi_matrix.shape=}')
+    #print(f'{sisdr.shape=}, {sisdr_argmax.shape=}')
+    #print(f'{all_permutations.shape=}, {sigmas.shape=}, {pesq.shape=}, {stoi.shape=}')
+    assert sisdr.shape == (B,)
+    assert not compute_aux or pesq.shape == stoi.shape == (B,)
+    return {
+      'sisdr': sisdr.mean(),
+      'pesq': pesq.mean() if compute_aux else None,
+      'stoi': stoi.mean() if compute_aux else None,
+      'loss': -sisdr.mean()
+    }

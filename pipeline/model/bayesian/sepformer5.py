@@ -76,7 +76,7 @@ class Sepformer5ModelPretrained(nn.Module):
     #pretrained = hparams['pretrainer']
     #speechbrain.pretrained.SepformerSeparation(hparams['modules'], hparams)
     stuff = torch.load(current_dir / 'sepformer5-model329-best.pth')['state_dict']
-    print(stuff.keys())
+    #print(stuff.keys())
     sepformer5_pretrained_state_dict = OrderedDict({key[6:] : value for key, value in stuff.items() if key.startswith('model.')})
     #self.model.load_state_dict(dct)
     self.model = SepformerSeparation5(sepformer5_pretrained_state_dict, modules=hparams['modules'], hparams=hparams)

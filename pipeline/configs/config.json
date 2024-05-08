@@ -63,21 +63,21 @@
   "lr_scheduler": {
     "type": "ExponentialLR",
     "args": {
-      "gamma": 0.9994
+      "gamma": 0.9991
     }
   },
   "trainer": {
     "Nsp": 5,
-    "epochs": 3,
+    "epochs": 1,
     "log_interval": 100,
     "save_dir": "saved/",
-    "save_period": 200,
+    "save_period": 500,
     "verbosity": 2,
     "monitor": "min val_loss",
     "early_stop": 100,
     "visualize": "wandb",
     "wandb_project": "ddpmss_project",
-    "len_epoch": 1000,
+    "len_epoch": 2000,
     "grad_norm_clip": 10
   }
 }
