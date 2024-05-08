@@ -1,0 +1,5 @@
+    lr0   ep  ep_len  gamma   sisdr_test
+5sp idk:
+452 1e-4  6   3000    0.9999  3.494
+real:
+    3e-4  6   3000    0.9999
