@@ -18,16 +18,14 @@ from pipeline.metric.utils import calc_cer, calc_wer
 from pipeline.utils import inf_loop, MetricTracker
 
 
-Nsp = 5  # warning: not only here at all!
-
-
-class Sepformer5Trainer(BaseTrainer):
+class SepformerNTrainer(BaseTrainer):
   '''
-  Sepformer3-based Sepformer5 Model trainer class
+  Sepformer3-based SepformerN Model trainer class
   '''
 
   def __init__(
       self,
+      Nsp,
       model,
       metrics,
       optimizer,
@@ -39,6 +37,7 @@ class Sepformer5Trainer(BaseTrainer):
       skip_oom=True,
   ):
     super().__init__(model, None, metrics, optimizer, config, device)
+    self.Nsp = Nsp
     self.skip_oom = skip_oom
     self.config = config
     self.train_dataloader = dataloaders['train']
@@ -56,10 +55,13 @@ class Sepformer5Trainer(BaseTrainer):
     self.evaluation_metrics = MetricTracker('sisdr', 'loss', *[m.name for m in self.metrics], writer=self.writer)
     #self.sisdr = SISDR().to(device)
     self.sisdr = SISDR
+    self.all_permutations = torch.tensor(list(itertools.permutations(range(self.Nsp))), device=self.device)
+    print(f'{self.all_permutations.shape=}')
 
   @staticmethod
   def move_batch_to_device(batch, device: torch.device):
-    for tensor_for_gpu in ['mixed', 'target1', 'target2', 'target3', 'target4', 'target5']:
+    #for tensor_for_gpu in ['mixed'] + [f'target{i+1}' for i in range(self.Nsp)]:
+    for tensor_for_gpu in batch.keys():
       batch[tensor_for_gpu] = batch[tensor_for_gpu].to(device)
     return batch
 
@@ -135,8 +137,8 @@ class Sepformer5Trainer(BaseTrainer):
       raise Exception("kek")
 
     batch.update(self.compute_metrics(
-      outputs['predicted1'], outputs['predicted2'], outputs['predicted3'], outputs['predicted4'], outputs['predicted5'],
-      batch['target1'], batch['target2'], batch['target3'], batch['target4'], batch['target5']
+      torch.stack([outputs[f'predicted{i+1}'] for i in range(self.Nsp)]),
+      torch.stack([batch[f'target{i+1}'] for i in range(self.Nsp)]),
     ))
     if is_train:
       batch['loss'].backward()
@@ -195,17 +197,9 @@ class Sepformer5Trainer(BaseTrainer):
 
   def _log_audios(self, batch):
     self._log_audio('mixed spectrogram', batch['mixed'])
-    self._log_audio('target1 spectrogram', batch['target1'])
-    self._log_audio('predicted1 spectrogram', batch['predicted1'])
-    self._log_audio('target1 spectrogram', batch['target1'])
-    self._log_audio('predicted2 spectrogram', batch['predicted2'])
-    self._log_audio('target2 spectrogram', batch['target2'])
-    self._log_audio('predicted3 spectrogram', batch['predicted3'])
-    self._log_audio('target3 spectrogram', batch['target3'])
-    self._log_audio('predicted4 spectrogram', batch['predicted4'])
-    self._log_audio('target4 spectrogram', batch['target4'])
-    self._log_audio('predicted5 spectrogram', batch['predicted5'])
-    self._log_audio('target5 spectrogram', batch['target5'])
+    for i in range(self.Nsp):
+      self._log_audio(f'target{i+1} spectrogram', batch[f'target{i+1}'])
+      self._log_audio(f'predicted{i+1} spectrogram', batch[f'predicted{i+1}'])
 
   @torch.no_grad()
   def get_grad_norm(self, norm_type=2):
@@ -234,20 +228,29 @@ class Sepformer5Trainer(BaseTrainer):
       result[i, :l] = xs[i, :l]
     return result
 
-  def compute_metrics(self, pred1, pred2, pred3, pred4, pred5, tgt1, tgt2, tgt3, tgt4, tgt5):
-    pred = [pred1, pred2, pred3, pred4, pred5]
-    tgt = [tgt1, tgt2, tgt3, tgt4, tgt5]
+  def compute_metrics(self, preds, tgts):
+    assert type(preds) is torch.Tensor and type(tgts) is torch.Tensor
+    _, B, _, L = preds.shape
+    assert preds.shape == tgts.shape == (self.Nsp, B, 1, L)
     sisdr_matrix = torch.stack([
-      torch.stack([self.sisdr(pred[i], tgt[j]) for j in range(Nsp)])
-      for i in range(Nsp)
-    ])
+      torch.stack([self.sisdr(preds[i], tgts[j]) for j in range(self.Nsp)])
+      for i in range(self.Nsp)
+    ]).squeeze(-1).to(self.device)
+    if np.random.rand() < 1e-3:
+      print(sisdr_matrix[:, :, 0].cpu().detach().numpy())
+    #print(f'{sisdr_matrix.shape=}')
+    B = sisdr_matrix.shape[2]
+    assert sisdr_matrix.shape == (self.Nsp, self.Nsp, B)
     #print('C', sisdr_matrix.shape, torch.stack([
-    #  sum(sisdr_matrix[i, sigma[i]] for i in range(Nsp)) / Nsp
-    #  for sigma in itertools.permutations(range(Nsp))
+    #  sum(sisdr_matrix[i, sigma[i]] for i in range(self.Nsp)) / self.Nsp
+    #  for sigma in itertools.permutations(range(self.Nsp))
     #]).shape)
     # "C torch.Size([5, 5, 4, 1]) torch.Size([120, 4, 1])"
-    sisdr = torch.stack([
-      sum(sisdr_matrix[i, sigma[i]] for i in range(Nsp)) / Nsp
-      for sigma in itertools.permutations(range(Nsp))
-    ]).max(0)[0].mean(0)  # mean_{over batch} max_{over matchings} average_{in pair} SISDR
+    #print(f'{sisdr_matrix[:, :, 0]=}')
+    #print(f'{sisdr_matrix[self.all_permutations].shape=}')
+    #print(f'{torch.einsum("aiib", sisdr_matrix[self.all_permutations]).shape=}')
+    sisdr = torch.einsum('aiib', sisdr_matrix[self.all_permutations]).max(0)[0]
+    #print(f'by samples sum {sisdr=}')
+    sisdr = sisdr.mean(-1) / self.Nsp
+    #print(f'final {sisdr=}')
     return {'sisdr': sisdr, 'loss': -sisdr}

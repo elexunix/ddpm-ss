@@ -111,3 +111,8 @@ wtf why -10.. checkout back and rerun
 564   0.0   -1.0  4.260 1.183 0.428
 
 awaiting for 3sp:  0.0   10.0  
+
+5sp cont, new code from 10sp:
+565   0.0   0.0   ~4, not waited till the end
+10sp!
+..    0.0   0.0

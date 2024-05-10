@@ -1,5 +1,5 @@
 {
-  "name": "bayesian",
+  "name": "sepformer5-bayesian",
   "n_gpu": 1,
   "preprocessing": {
     "sr": 16000,
