@@ -8,7 +8,7 @@ import torch, torchaudio
 import pipeline.loss as module_loss
 import pipeline.metric as module_metric
 import pipeline.model as module_arch
-from pipeline.trainer import Sepformer5Trainer as Trainer
+from pipeline.trainer import SepformerNTrainer as Trainer
 from pipeline.utils import prepare_device
 from pipeline.utils.object_loading import get_dataloaders
 from pipeline.utils.parse_config import ConfigParser
@@ -54,6 +54,7 @@ def main(config):
   lr_scheduler = config.init_obj(config["lr_scheduler"], torch.optim.lr_scheduler, optimizer)
 
   trainer = Trainer(
+    config["trainer"].get("Nsp"),
     model,
     metrics,
     optimizer,

@@ -21,7 +21,7 @@
   },
   "data": {
     "train": {
-      "batch_size": 2,
+      "batch_size": 1,
       "num_workers": 0,
       "datasets": [
        {
@@ -34,7 +34,7 @@
       ]
     },
     "val": {
-      "batch_size": 2,
+      "batch_size": 1,
       "num_workers": 0,
       "datasets": [
        {
@@ -62,12 +62,12 @@
   "lr_scheduler": {
     "type": "ExponentialLR",
     "args": {
-      "gamma": 0.99995
+      "gamma": 0.9999
     }
   },
   "trainer": {
     "Nsp": 10,
-    "epochs": 12,
+    "epochs": 6,
     "log_interval": 600,
     "save_dir": "saved/",
     "save_period": 200,

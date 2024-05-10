@@ -1,5 +1,5 @@
 {
-  "name": "sepformer10",
+  "name": "sepformer5",
   "n_gpu": 1,
   "preprocessing": {
     "sr": 16000,
@@ -15,32 +15,32 @@
     "spectrogram": []
   },
   "arch": {
-    "type": "Sepformer10Model",
+    "type": "Sepformer5Model",
     "args": {
     }
   },
   "data": {
     "train": {
-      "batch_size": 2,
+      "batch_size": 1,
       "num_workers": 0,
       "datasets": [
        {
-          "type": "Libri10MixDataset",
+          "type": "Libri5MixDataset",
           "args": {
-            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri10Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
+            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri5Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
             "maxlen": 65536
           }
         }
       ]
     },
     "val": {
-      "batch_size": 2,
+      "batch_size": 1,
       "num_workers": 0,
       "datasets": [
        {
-          "type": "Libri10MixDataset",
+          "type": "Libri5MixDataset",
           "args": {
-            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri10Mix/wav16k/max/metadata/mixture_test_mix_clean.csv",
+            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri5Mix/wav16k/max/metadata/mixture_test_mix_clean.csv",
             "maxlen": 65536
           }
         }
@@ -62,21 +62,21 @@
   "lr_scheduler": {
     "type": "ExponentialLR",
     "args": {
-      "gamma": 0.99995
+      "gamma": 0.9999
     }
   },
   "trainer": {
-    "Nsp": 10,
-    "epochs": 12,
+    "Nsp": 5,
+    "epochs": 6,
     "log_interval": 600,
     "save_dir": "saved/",
     "save_period": 200,
     "verbosity": 2,
     "monitor": "min val_loss",
-    "early_stop": 100,
+    "early_stop": 50,
     "visualize": "wandb",
     "wandb_project": "ddpmss_project",
     "len_epoch": 3000,
-    "grad_norm_clip": 10
+    "grad_norm_clip": 5
   }
 }
