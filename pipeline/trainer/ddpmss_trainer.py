@@ -1,14 +1,17 @@
 from pathlib import Path
-import random, PIL, numpy as np, pandas as pd
+from random import shuffle
+import PIL
+import numpy as np
+import pandas as pd
 import torch, torch.nn as nn, torch.nn.functional as F
 import torchaudio
 from torchvision.transforms import ToTensor
 #from torchmetrics import ScaleInvariantSignalDistortionRatio as SISDR  # it's a scam; for more scam, please visit https://github.com/elexunix/scam
+from torchmetrics.audio.pesq import PerceptualEvaluationSpeechQuality as PESQ
+from torchmetrics.audio.stoi import ShortTimeObjectiveIntelligibility as STOI
 from torchmetrics.functional import scale_invariant_signal_distortion_ratio as SISDR
-from torchmetrics.audio import PerceptualEvaluationSpeechQuality as PESQ, ShortTimeObjectiveIntelligibility as STOI
 from tqdm import tqdm
-import itertools
-from multiprocessing import Pool
+import itertools, multiprocessing
 
 from pipeline.base import BaseTrainer
 from pipeline.base.base_text_encoder import BaseTextEncoder
@@ -50,17 +53,20 @@ class DDPMSSTrainer(BaseTrainer):
     self.evaluation_dataloaders = {k: v for k, v in dataloaders.items() if k != 'train'}
     self.lr_scheduler = lr_scheduler
     self.log_step = self.config['trainer']['log_interval']
-    self.train_metrics = MetricTracker('sisdr', 'loss', 'grad_norm', *[m.name for m in self.metrics], writer=self.writer)
+    self.train_metrics = MetricTracker('sisdr', 'loss', 'grad norm', *[m.name for m in self.metrics], writer=self.writer)
     self.train_metrics_sometimes = MetricTracker('pesq', 'stoi', *[m.name for m in self.metrics], writer=self.writer)  # not used
     self.evaluation_metrics = MetricTracker('sisdr', 'pesq', 'stoi', 'loss', *[m.name for m in self.metrics], writer=self.writer)
     #self.sisdr = SISDR().to(device)
     self.sisdr = SISDR
+    self.all_permutations = torch.tensor(list(itertools.permutations(range(self.Nsp))), device=self.device)
+    print(f'{self.all_permutations.shape=}')
     self.pesq = PESQ(fs=16000, mode='wb')
     self.stoi = STOI(fs=16000)
 
   @staticmethod
   def move_batch_to_device(batch, device: torch.device):
-    for tensor_for_gpu in ['mixed'] + [f'target{i+1}' for i in range(5)]:
+    #for tensor_for_gpu in ['mixed'] + [f'target{i+1}' for i in range(self.Nsp)]:
+    for tensor_for_gpu in batch.keys():
       batch[tensor_for_gpu] = batch[tensor_for_gpu].to(device)
     return batch
 
@@ -99,23 +105,17 @@ class DDPMSSTrainer(BaseTrainer):
           continue
         else:
           raise e
-      self.train_metrics.update('grad_norm', self.get_grad_norm())
+      self.train_metrics.update('grad norm', self.get_grad_norm())
       if batch_idx % self.log_step == 0:
         self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
         self.logger.debug(
-          'Train Epoch: {} {} Loss: {:.6f}'.format(
-            epoch, self._progress(batch_idx), batch['loss'].item()
-          )
+          f'Train Epoch: {epoch} {self._progress(batch_idx)} Loss: {batch["loss"].item():.6f}'
         )
         self.writer.add_scalar(
           'learning rate', self.lr_scheduler.get_last_lr()[0]
         )
         #self._log_predictions(**batch)
-        self._log_audio('mixed spectrogram', batch['mixed'])
-        for isp in range(1, self.Nsp + 1):
-          self._log_audio(f'separated{isp} spectrogram', batch[f'separated{isp}'])
-          self._log_audio(f'predicted{isp} spectrogram', batch[f'predicted{isp}'])
-          self._log_audio(f'target{isp} spectrogram', batch[f'target{isp}'])
+        self._log_audios(batch)
         self._log_scalars(self.train_metrics)
         # we don't want to reset train metrics at the start of every epoch
         # because we are interested in recent train metrics
@@ -140,12 +140,12 @@ class DDPMSSTrainer(BaseTrainer):
       batch.update(outputs)
     else:
       raise Exception("kek")
-      #batch['logits'] = outputs
 
-    #batch['log_probs'] = F.log_softmax(batch['logits'], dim=-1)
-    #batch['log_probs_length'] = self.model.transform_input_lengths(batch['spectrogram_length'])
-    #batch.update(self.compute_metrics(outputs['separated1'], outputs['separated2'], outputs['separated3'], outputs['predicted1'], outputs['predicted2'], outputs['predicted3'], batch['target1'], batch['target2'], batch['target3']))
-    batch.update(self.compute_metrics(*[outputs[f'separated{i+1}'] for i in range(5)], *[outputs[f'predicted{i+1}'] for i in range(5)], *[batch[f'target{i+1}'] for i in range(5)], compute_aux=not is_train))
+    batch.update(self.compute_metrics(
+      torch.stack([outputs[f'predicted{i+1}'] for i in range(self.Nsp)]),
+      torch.stack([batch[f'target{i+1}'] for i in range(self.Nsp)]),
+      compute_aux=not is_train
+    ))
     if is_train:
       batch['loss'].backward()
       self._clip_grad_norm()
@@ -173,24 +173,12 @@ class DDPMSSTrainer(BaseTrainer):
     self.model.eval()
     self.evaluation_metrics.reset()
     with torch.no_grad():
-      for batch_idx, batch in tqdm(
-          enumerate(dataloader),
-          desc=part,
-          total=len(dataloader),
-      ):
-        batch = self.process_batch(
-          batch,
-          is_train=False,
-          metrics=self.evaluation_metrics,
-        )
+      for batch_idx, batch in tqdm(enumerate(dataloader), desc=part, total=len(dataloader)):
+        batch = self.process_batch(batch, is_train=False, metrics=self.evaluation_metrics)
       self.writer.set_step(epoch * self.len_epoch, part)
       self._log_scalars(self.evaluation_metrics)
       #self._log_predictions(**batch)
-      self._log_audio('mixed spectrogram', batch['mixed'])
-      for isp in range(1, self.Nsp + 1):
-        self._log_audio(f'separated{isp} spectrogram', batch[f'separated{isp}'])
-        self._log_audio(f'predicted{isp} spectrogram', batch[f'predicted{isp}'])
-        self._log_audio(f'target{isp} spectrogram', batch[f'target{isp}'])
+      self._log_audios(batch)
 
     # DON'T add histogram of model parameters to the tensorboard
     #for name, p in self.model.named_parameters():
@@ -206,6 +194,12 @@ class DDPMSSTrainer(BaseTrainer):
       current = batch_idx
       total = self.len_epoch
     return base.format(current, total, 100.0 * current / total)
+
+#def _log_spectrogram(self, caption, spectrogram_batch):
+#  return
+#  spectrogram = spectrogram[0].cpu()  #random.choice(spectrogram_batch.cpu())
+#  image = PIL.Image.open(plot_spectrogram_to_buf(spectrogram))
+#  self.writer.add_image(caption, ToTensor()(image))
 
 #  def _log_predictions(
 #      self,
@@ -253,6 +247,12 @@ class DDPMSSTrainer(BaseTrainer):
     audio = audio_batch.cpu()[0]  #random.choice(audio_batch.cpu())
     self.writer.add_audio(caption, audio, sample_rate=16000)
 
+  def _log_audios(self, batch):
+    self._log_audio('mixed spectrogram', batch['mixed'])
+    for i in range(self.Nsp):
+      self._log_audio(f'target{i+1} spectrogram', batch[f'target{i+1}'])
+      self._log_audio(f'predicted{i+1} spectrogram', batch[f'predicted{i+1}'])
+
   @torch.no_grad()
   def get_grad_norm(self, norm_type=2):
     parameters = self.model.parameters()
@@ -280,18 +280,9 @@ class DDPMSSTrainer(BaseTrainer):
       result[i, :l] = xs[i, :l]
     return result
 
-  def compute_metrics(self, sep1, sep2, sep3, sep4, sep5, pred1, pred2, pred3, pred4, pred5, tgt1, tgt2, tgt3, tgt4, tgt5, compute_aux):
-    #random_number = np.random.randint(1000000)
-    #print(f'{random_number=}')
-    #for name, audio in ('p1', pred1), ('p2', pred2), ('s1', sep1), ('s2', sep2), ('t1', tgt1), ('t2', tgt2):
-    #  print(name + '.shape=' + str(audio.shape), f'{audio=}')
-    #  torchaudio.save('folder/' + str(random_number) + '-' + name + '.wav', audio.cpu()[0, :], 16000)
-    #p2t1 = self.sisdr(pred2, tgt1) ...
-    #sisdr = torch.stack([(p1t1 + p2t2) / 2, (p1t2 + p2t1) / 2]).max(0)[0].mean(0)  # mean_{over batch} max_{over matchings} average_{in pair} SISDR
-    B, L = pred1.shape[0], pred1.shape[-1]
-    preds = torch.stack([pred1, pred2, pred3, pred4, pred5])
-    tgts = torch.stack([tgt1, tgt2, tgt3, tgt4, tgt5])
-    #print(f'{preds.shape=}, {tgts.shape=}')
+  def compute_metrics(self, preds, tgts, compute_aux):
+    assert type(preds) is torch.Tensor and type(tgts) is torch.Tensor
+    _, B, _, L = preds.shape
     assert preds.shape == tgts.shape == (self.Nsp, B, 1, L)
     def metric_matrix(metric_fn):
       return torch.stack([
@@ -300,37 +291,43 @@ class DDPMSSTrainer(BaseTrainer):
       ])
     def metric_matrix_parallel_nograd(metric_fn):
       with torch.no_grad():
-        with Pool(24) as p:
+        with multiprocessing.Pool(24) as p:
           P = preds[None, :, ...].repeat(self.Nsp, 1, 1, 1, 1).view(self.Nsp**2 * B, *preds.shape[-2:]).cpu()
           T = tgts[:, None, ...].repeat(1, self.Nsp, 1, 1, 1).view(self.Nsp**2 * B, *tgts.shape[-2:]).cpu()
           assert P.shape == T.shape == (self.Nsp**2 * B, 1, L)
           M = torch.stack(p.starmap(metric_fn, zip(P, T)))
           return M.view(self.Nsp, self.Nsp, B)
     sisdr_matrix = metric_matrix(self.sisdr)
+    #print(f'{sisdr_matrix.shape=}')
     if compute_aux:
       pesq_matrix = metric_matrix_parallel_nograd(self.pesq)
       stoi_matrix = metric_matrix_parallel_nograd(self.stoi)
-    #print(f'{sisdr_matrix.shape=}, {pesq_matrix.shape=}, {stoi_matrix.shape=}')
+      #print(f'{pesq_matrix.shape=}, {stoi_matrix.shape=}')
+    if np.random.rand() < 1e-3:
+      print(sisdr_matrix[:, :, 0].cpu().detach().numpy())
     assert sisdr_matrix.shape == (self.Nsp, self.Nsp, B)
-    assert not compute_aux or pesq_matrix.shape == stoi_matrix.shape == (self.Nsp, self.Nsp, B)
-#    sisdr = torch.stack([
+#    assert not compute_aux or pesq_matrix.shape == stoi_matrix.shape == (self.Nsp, self.Nsp, B)
+#    sisdr, sisdr_argmax = torch.stack([
 #      sum(sisdr_matrix[i, sigma[i]] for i in range(self.Nsp)) / self.Nsp
 #      for sigma in itertools.permutations(range(self.Nsp))
-#    ]).max(0)[0].mean(0)  # mean_{over batch} max_{over matchings} average_{in permutation} SISDR
-    sisdr, sisdr_argmax = torch.stack([
-      sum(sisdr_matrix[i, sigma[i]] for i in range(self.Nsp)) / self.Nsp
-      for sigma in itertools.permutations(range(self.Nsp))
-    ]).max(0)  # max_{over matchings} average_{in permutation} SISDR
-    all_permutations = torch.tensor(list(itertools.permutations(range(self.Nsp))))
-    sigmas = all_permutations[sisdr_argmax.cpu()]
-    if compute_aux:
-      pesq = torch.stack([sum(pesq_matrix[spi, sigma[spi], s] for spi in range(self.Nsp)) / self.Nsp for s, sigma in enumerate(sigmas)])
-      stoi = torch.stack([sum(stoi_matrix[spi, sigma[spi], s] for spi in range(self.Nsp)) / self.Nsp for s, sigma in enumerate(sigmas)])
-    #print(f'{sisdr_matrix.shape=}, {pesq_matrix.shape=}, {stoi_matrix.shape=}')
-    #print(f'{sisdr.shape=}, {sisdr_argmax.shape=}')
-    #print(f'{all_permutations.shape=}, {sigmas.shape=}, {pesq.shape=}, {stoi.shape=}')
+#    ]).max(0)  # max_{over matchings} average_{in permutation} SISDR
+#    all_permutations = torch.tensor(list(itertools.permutations(range(self.Nsp))))
+#    sigmas = all_permutations[sisdr_argmax.cpu()]
+#    if compute_aux:
+#      pesq = torch.stack([sum(pesq_matrix[spi, sigma[spi], s] for spi in range(self.Nsp)) / self.Nsp for s, sigma in enumerate(sigmas)])
+#      stoi = torch.stack([sum(stoi_matrix[spi, sigma[spi], s] for spi in range(self.Nsp)) / self.Nsp for s, sigma in enumerate(sigmas)])
+#    assert sisdr.shape == (B,)
+#    assert not compute_aux or pesq.shape == stoi.shape == (B,)
+    sisdr, sisdr_argmax = (torch.einsum('aiib', sisdr_matrix[self.all_permutations]) / self.Nsp).max(0)
     assert sisdr.shape == (B,)
-    assert not compute_aux or pesq.shape == stoi.shape == (B,)
+    sigmas = self.all_permutations[sisdr_argmax].cpu()
+    assert sigmas.shape == (B, self.Nsp)
+    if compute_aux:
+      pesq = torch.stack([pesq_matrix[torch.arange(self.Nsp), sigmas[i], i].mean(0) for i in range(B)])
+      stoi = torch.stack([stoi_matrix[torch.arange(self.Nsp), sigmas[i], i].mean(0) for i in range(B)])
+      #print(f'{pesq_matrix.shape=}, {stoi_matrix.shape=}, {torch.arange(self.Nsp).shape=}, {sigmas.shape=}, {pesq.shape=}, {stoi.shape=}')
+      assert pesq.shape == stoi.shape == (B,)
+    #print(f'final {sisdr=}')
     return {
       'sisdr': sisdr.mean(),
       'pesq': pesq.mean() if compute_aux else None,
