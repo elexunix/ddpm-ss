@@ -34,13 +34,10 @@ after critical bug fix:
 
 plain sepdiff:
 262 1e-3  2       12.806
-
 plain sepformer:
 267       -       12.839    audio totally fine
-
 plain sepformer+diffusion:
 272       -       -30.062
-
 baseline:
 274 1e-2  8 0.999   6   12.930
 275 1e-1  8 0.999   1   -24.461
@@ -48,7 +45,6 @@ baseline:
 292 1e-3  8 0.999   6   12.932
 293 1e-2  4 0.9993  20  12.951
 294 1e-3  8 0.999   6   12.916
-
 
 bayesian exps (1e-3  8 0.999   6):
 299   0.0   0.0   12.928
@@ -114,6 +110,10 @@ awaiting for 3sp:  0.0   10.0
 
 5sp cont, new code from 10sp:
 565   0.0   0.0   ~4, not waited till the end
-585   0.0   0.0   
+585   0.0   0.0   ~4, now waited till the end
 10sp!:
-...
+587   0.0   0.0   -4.251  1.115 0.506
+588   1.0   0.0   -4.240  1.113 0.506
+589   0.0   1.0   -4.218  1.113 0.508
+590   3.0   0.0   -4.236  1.114 0.507
+591   0.0   3.0   

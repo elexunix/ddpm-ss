@@ -3,7 +3,8 @@ import torchaudio
 
 from .diffusion import DiffusionModel
 #from .sepformer import SepformerModel
-from .sepformer5 import Sepformer5ModelPretrained as SepformerModel
+#from .sepformer5 import Sepformer5ModelPretrained as SepformerModel
+from .sepformer10 import Sepformer10ModelPretrained as SepformerModel
 
 
 class MixerModel(nn.Module):
