@@ -10,6 +10,7 @@ from .bayesian.diffwave import DiffWaveDiffusionTuned
 from .bayesian.sepdiff import SepDiffConditionalModel
 from .sepformer5 import Sepformer5Model
 from .sepformer10 import Sepformer10Model
+from .spcnt import SpeakerCountingModel
 
 __all__ = [
   "LibrispeechDataset",
@@ -22,4 +23,5 @@ __all__ = [
   "SepDiffConditionalModel",
   "Sepformer5Model",
   "Sepformer10Model",
+  "SpeakerCountingModel",
 ]

@@ -1,0 +1,6 @@
+constant baseline: 0.66666
+simple conv1d-based: 0.2383
+
+for 0 1 2 3 benchmark with noise (hard even for me sometimes):
+constant baseline: 1.250
+simple conv1d-based: 0.626
