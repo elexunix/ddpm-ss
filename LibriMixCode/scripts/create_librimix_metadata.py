@@ -250,7 +250,8 @@ def set_noise_pairs(pairs, noise_pairs, librispeech_md_file, wham_md_file):
             # add that noise's index to the list
             noise_pairs.append(pair_noise)
             # remove that noise from the remaining noises
-            md = md.drop(pair_noise)
+            if np.random.rand() < .5:  # this line by elexunix
+              md = md.drop(pair_noise)
         # if possible is empty
         except ValueError:
             # if we deal with training files
@@ -260,7 +261,8 @@ def set_noise_pairs(pairs, noise_pairs, librispeech_md_file, wham_md_file):
                 # add it to noise list
                 noise_pairs.append(pair_noise)
                 # remove it from remaining noises
-                md = md.drop(pair_noise)
+                if np.random.rand() < .5:  # this line by elexunix
+                  md = md.drop(pair_noise)
             # if dev or test
             else:
                 # just delete the pair we will redo this process

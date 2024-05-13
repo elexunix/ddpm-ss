@@ -75,5 +75,5 @@ class BaseDatasetSS(Dataset):
       assert 'path_mixed' in entry, 'Each dataset item should include field "path_mixed" - path to mixed audio file.'
       #assert 'path_target' in entry, 'Each dataset item should include field "path_target" - path to target audio file.'
       #assert 'path_ref' in entry, 'Each dataset item should include field "path_ref" - path to reference speech audio file.'
-      assert 'path_target1' in entry, 'Each dataset item should include field "path_target1" - path to the 1st target audio file.'
-      assert 'path_target2' in entry, 'Each dataset item should include field "path_target2" - path to the 2nd target audio file.'
+      #assert 'path_target1' in entry, 'Each dataset item should include field "path_target1" - path to the 1st target audio file.'
+      #assert 'path_target2' in entry, 'Each dataset item should include field "path_target2" - path to the 2nd target audio file.'

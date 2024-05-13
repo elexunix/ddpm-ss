@@ -1,13 +1,12 @@
+import json, os, logging, shutil, pathlib, random
+import numpy as np, pandas as pd
+from tqdm import tqdm
+import torchaudio
+from speechbrain.utils.data_utils import download_file
+
 from pipeline.mixer.generate import generate
 # Used to generate
 #generate(all_audios_dir='data/datasets/librispeech/train-clean-360', out_folder='data/datasets/source-separation', n_files_train=30000, n_files_test=3000)  # change if needed
-
-
-import json, os, logging, shutil, pathlib, pandas as pd
-import torchaudio
-from speechbrain.utils.data_utils import download_file
-from tqdm import tqdm
-
 from pipeline.base.base_dataset_ss import BaseDatasetSS
 from pipeline.utils import ROOT_PATH
 
@@ -137,6 +136,55 @@ class Libri10MixDataset(BaseDatasetSS):
       'target8': self.load_audio(self.index[index]['path_target8'], maxlen=self.maxlen)[None],
       'target9': self.load_audio(self.index[index]['path_target9'], maxlen=self.maxlen)[None],
       'target10': self.load_audio(self.index[index]['path_target10'], maxlen=self.maxlen)[None],
+    }
+
+  def __len__(self):
+    return len(self.index)
+
+
+class LibriUnk3MixDataset(BaseDatasetSS):
+  def __init__(self, libri0mix_root_dir,
+                     libri1mix_clean_csv_filename, libri1mix_dirty_csv_filename,
+                     libri2mix_clean_csv_filename, libri2mix_dirty_csv_filename,
+                     libri3mix_clean_csv_filename, libri3mix_dirty_csv_filename,
+               cnt_limit_0=None, cnt_limit_1=None, cnt_limit_2=None, cnt_limit_3=None, maxlen=None, *args, **kwargs):
+    def extract_from_two_indexes(clean_csv_filename, dirty_csv_filename, cnt_limit=None):
+      index = [row['mixture_path'] for i, row in pd.read_csv(clean_csv_filename).iterrows()] \
+            + [row['mixture_path'] for i, row in pd.read_csv(dirty_csv_filename).iterrows()]
+      random.shuffle(index)
+      if cnt_limit is not None:
+        index = index[:cnt_limit]
+      return index
+    self.index0 = []
+    for root, _, filenames in os.walk(libri0mix_root_dir):
+      for filename in filenames:
+        if filename.endswith('.wav'):
+          self.index0.append(os.path.join(root, filename))
+    assert self.index0
+    if cnt_limit_0 is not None:
+      self.index0 = self.index0[:cnt_limit_0]
+    self.index1 = extract_from_two_indexes(libri1mix_clean_csv_filename, libri1mix_dirty_csv_filename, cnt_limit_1)
+    self.index2 = extract_from_two_indexes(libri2mix_clean_csv_filename, libri2mix_dirty_csv_filename, cnt_limit_2)
+    self.index3 = extract_from_two_indexes(libri3mix_clean_csv_filename, libri3mix_dirty_csv_filename, cnt_limit_3)
+    print('DATASET CONTAINS', len(self.index0), 'libri0mix audios',
+                              len(self.index1), 'libri1mix audios',
+                              len(self.index2), 'libri2mix audios',
+                              len(self.index3), 'libri3mix audios')
+    assert len(self.index0) == len(self.index1) == len(self.index2) == len(self.index3)
+    self.index = [{'path_mixed': path, 'cnt_speakers': 0.0} for path in self.index1] \
+               + [{'path_mixed': path, 'cnt_speakers': 1.0} for path in self.index1] \
+               + [{'path_mixed': path, 'cnt_speakers': 2.0} for path in self.index2] \
+               + [{'path_mixed': path, 'cnt_speakers': 3.0} for path in self.index3]
+    random.shuffle(self.index)
+    print(self.index[:5])
+    super().__init__(self.index, *args, **kwargs)
+    self.maxlen = maxlen
+
+  def __getitem__(self, index):
+    entry = self.index[index]
+    return {
+      'mixed': self.load_audio(entry['path_mixed'], maxlen=self.maxlen)[None],
+      'cnt_speakers': np.float32(entry['cnt_speakers'])
     }
 
   def __len__(self):

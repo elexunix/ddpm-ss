@@ -1,5 +1,5 @@
 {
-  "name": "sepformer10-bayesian",
+  "name": "speaker-counting",
   "n_gpu": 1,
   "preprocessing": {
     "sr": 16000,
@@ -15,33 +15,52 @@
     "spectrogram": []
   },
   "arch": {
-    "type": "SepDiffConditionalModel",
+    "type": "SpeakerCountingModel",
     "args": {
-      "Nsp": 10
     }
   },
   "data": {
     "train": {
-      "batch_size": 2,
+      "batch_size": 16,
       "num_workers": 0,
       "datasets": [
        {
-          "type": "Libri10MixDataset",
+          "type": "LibriUnk3MixDataset",
           "args": {
-            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri10Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
+            "libri0mix_root_dir": "/media/elexunix/seconddrive/librimix/wham_noise",
+            "libri1mix_clean_csv_filename": "/media/elexunix/seconddrive/librimix/Libri1Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
+            "libri1mix_dirty_csv_filename": "/media/elexunix/seconddrive/librimix/Libri1Mix/wav16k/max/metadata/mixture_train-360_mix_both.csv",
+            "libri2mix_clean_csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
+            "libri2mix_dirty_csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_train-360_mix_both.csv",
+            "libri3mix_clean_csv_filename": "/media/elexunix/seconddrive/librimix/Libri3Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
+            "libri3mix_dirty_csv_filename": "/media/elexunix/seconddrive/librimix/Libri3Mix/wav16k/max/metadata/mixture_train-360_mix_both.csv",
+            "cnt_limit_0": 33333,
+            "cnt_limit_1": 33333,
+            "cnt_limit_2": 33333,
+            "cnt_limit_3": 33333,
             "maxlen": 65536
           }
         }
       ]
     },
     "val": {
-      "batch_size": 2,
+      "batch_size": 16,
       "num_workers": 0,
       "datasets": [
        {
-          "type": "Libri10MixDataset",
+          "type": "LibriUnk3MixDataset",
           "args": {
-            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri10Mix/wav16k/max/metadata/mixture_test_mix_clean.csv",
+            "libri0mix_root_dir": "/media/elexunix/seconddrive/librimix/wham_noise",
+            "libri1mix_clean_csv_filename": "/media/elexunix/seconddrive/librimix/Libri1Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
+            "libri1mix_dirty_csv_filename": "/media/elexunix/seconddrive/librimix/Libri1Mix/wav16k/max/metadata/mixture_train-360_mix_both.csv",
+            "libri2mix_clean_csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
+            "libri2mix_dirty_csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_train-360_mix_both.csv",
+            "libri3mix_clean_csv_filename": "/media/elexunix/seconddrive/librimix/Libri3Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
+            "libri3mix_dirty_csv_filename": "/media/elexunix/seconddrive/librimix/Libri3Mix/wav16k/max/metadata/mixture_train-360_mix_both.csv",
+            "cnt_limit_0": 3333,
+            "cnt_limit_1": 3333,
+            "cnt_limit_2": 3333,
+            "cnt_limit_3": 3333,
             "maxlen": 65536
           }
         }
@@ -51,7 +70,7 @@
   "optimizer": {
     "type": "Adam",
     "args": {
-      "lr": 3e-3
+      "lr": 1e-2
     }
   },
   "loss": {
@@ -63,7 +82,7 @@
   "lr_scheduler": {
     "type": "ExponentialLR",
     "args": {
-      "gamma": 0.9991
+      "gamma": 0.999
     }
   },
   "trainer": {
