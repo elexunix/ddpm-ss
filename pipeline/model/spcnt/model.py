@@ -14,7 +14,8 @@ class SpeakerCountingModel(nn.Module):
   def forward(self, x):
     B, C, L = x.shape
     assert C == 1
-    #return torch.full((B,), 2.0, dtype=torch.float, device=x.device) + 0 * self.dummy
+    x = x * 30 / x.norm(dim=-1, keepdim=True)
+    #return torch.full((B,), 1.5, dtype=torch.float, device=x.device) + 0 * self.dummy  # baseline
     x = self.stack(x).mean(-1)
     assert x.shape == (B, 1)
     return x.squeeze(1)

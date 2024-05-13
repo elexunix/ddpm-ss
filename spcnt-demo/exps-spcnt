@@ -1,0 +1,20 @@
+constant baseline: 0.66666
+simple conv1d-based: 0.2383
+
+for 0 1 2 3 benchmark with noise (hard even for me sometimes):
+constant baseline: 1.250
+633 simple conv1d-based:    0.626
+637 simple, but with norm:  0.789
+638 same                    0.849
+639 same                    0.832
+640 same                    0.838
+641 same                    0.789
+lr 1e-2 -> 1e-1:
+642 same arch               1.250
+lr back to 1e-2, gamma:0.999->0.998:
+643 same arch               0.838
+3e-3, 0.999:
+645 same arch               0.
+after error in dataset was corrected:
+646 same arch               0.491
+kek-opinion was optimized using model to contain exactly 1 speaker))
