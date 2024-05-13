@@ -171,12 +171,11 @@ class LibriUnk3MixDataset(BaseDatasetSS):
                               len(self.index2), 'libri2mix audios',
                               len(self.index3), 'libri3mix audios')
     assert len(self.index0) == len(self.index1) == len(self.index2) == len(self.index3)
-    self.index = [{'path_mixed': path, 'cnt_speakers': 0.0} for path in self.index1] \
+    self.index = [{'path_mixed': path, 'cnt_speakers': 0.0} for path in self.index0] \
                + [{'path_mixed': path, 'cnt_speakers': 1.0} for path in self.index1] \
                + [{'path_mixed': path, 'cnt_speakers': 2.0} for path in self.index2] \
                + [{'path_mixed': path, 'cnt_speakers': 3.0} for path in self.index3]
     random.shuffle(self.index)
-    print(self.index[:5])
     super().__init__(self.index, *args, **kwargs)
     self.maxlen = maxlen
 
