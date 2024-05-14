@@ -12,10 +12,11 @@ audio = audio[None]
 audio.requires_grad_()
 print(f'{audio.shape=}')
 
-for lr in tqdm([1e-1] * 5):
+# 1e2 perfectly ok, 1e3 ended in 1.2, 1e4 exploded
+for lr in tqdm([0.1] * 5):
   n_sp_real = model(audio)
   print(n_sp_real.item())
-  direction_towards = torch.autograd.grad((n_sp_real - 1)**2, audio)[0]
+  direction_towards = torch.autograd.grad((n_sp_real - 3)**2, audio)[0]
   audio.requires_grad_(False)
   audio -= lr * direction_towards
   audio.requires_grad_(True)
