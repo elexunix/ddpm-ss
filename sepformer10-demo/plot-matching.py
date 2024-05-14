@@ -31,22 +31,24 @@ from torchmetrics.audio.sdr import scale_invariant_signal_distortion_ratio as si
 #plt.savefig('1/sisdrs10.png')
 
 
-#preds, tgts = [], []
-#for i in range(10):
-#  pred, sr = torchaudio.load(f'2/predicted{i}.wav')
-#  assert sr == 16000
-#  preds.append(pred)
-#for i in range(10):
-#  tgt, sr = torchaudio.load(f'2/target{i}.wav')
-#  assert sr == 16000
-#  tgts.append(tgt)
-#
-#a = np.array([[sisdr(pred, tgt).item() for tgt in tgts] for pred in preds])
-#
-#print(a)
-#assert a.shape == (10, 10)
-#plt.imshow(a)
-#plt.savefig('2/sisdrs10.png')
+preds, tgts = [], []
+for i in range(10):
+  pred, sr = torchaudio.load(f'2/predicted{i}.wav')
+  assert sr == 16000
+  preds.append(pred)
+for i in range(10):
+  tgt, sr = torchaudio.load(f'2/target{i}.wav')
+  assert sr == 16000
+  tgts.append(tgt)
+
+a = np.array([[sisdr(pred, tgt).item() for tgt in tgts] for pred in preds])
+
+print(a)
+assert a.shape == (10, 10)
+plt.imshow(a)
+plt.colorbar()
+plt.savefig('2/sisdrs10.png')
+quit(0)
 
 
 preds, tgts = [], []

@@ -8,7 +8,7 @@ import torch, torchaudio
 import pipeline.loss as module_loss
 import pipeline.metric as module_metric
 import pipeline.model as module_arch
-from pipeline.trainer import SpCntTrainer as Trainer
+from pipeline.trainer import DDPMSSTrainer as Trainer
 from pipeline.utils import prepare_device
 from pipeline.utils.object_loading import get_dataloaders
 from pipeline.utils.parse_config import ConfigParser

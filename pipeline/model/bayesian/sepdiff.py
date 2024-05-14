@@ -93,14 +93,14 @@ class SepDiffConditionalModel(nn.Module):
       #print(f'{separated.shape=}, {denoised.shape=}')
       assert denoised.ndim == 3
       assert denoised.shape[1] == self.Nsp
-      denoised = self.fix_length(denoised, separated.shape[-1], lenience=256)
+      #denoised = self.fix_length(denoised, separated.shape[-1], lenience=256)
       separated = self.resampler_22k16k(separated)
       denoised = self.resampler_22k16k(denoised)
       assert separated.ndim == 3 and separated.shape[1] == self.Nsp
-      assert separated.shape[-2] == self.Nsp
-      assert denoised.shape[-2] == self.Nsp
+      assert denoised.ndim == 3 and denoised.shape[1] == self.Nsp
+      d = self.fix_length(denoised, separated.shape[-1], lenience=256)
       separated = torch.cat([self.stft(separated[:, i, :]) for i in range(self.Nsp)], 1)
-      denoised = torch.cat([self.stft(denoised[:, i, :]) for i in range(self.Nsp)], 1)
+      denoised = torch.cat([self.stft(d[:, i, :]) for i in range(self.Nsp)], 1)
     #predicted1_angle = self.mixer_angle(separated1.angle(), denoised1.angle())
     #predicted1_abs = self.mixer_abs(separated1.abs(), denoised1.abs())
     predicted_angle = self.mixer_angle(separated.angle(), denoised.angle())
@@ -112,5 +112,6 @@ class SepDiffConditionalModel(nn.Module):
     predicted = self.fix_length(predicted, L, lenience=300)
     return dict(
       **{f"separated{i+1}": s[:, i:i+1, :] for i in range(self.Nsp)},
+      **{f"denoised{i+1}": d[:, i:i+1, :] for i in range(self.Nsp)},
       **{f"predicted{i+1}": predicted[:, i:i+1, :] for i in range(self.Nsp)},
     )

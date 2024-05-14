@@ -19,3 +19,15 @@ class SpeakerCountingModel(nn.Module):
     x = self.stack(x).mean(-1)
     assert x.shape == (B, 1)
     return x.squeeze(1)
+  def kekward(self, x):
+    B, C, L = x.shape
+    assert C == 1
+    x = x * 30 / x.norm(dim=-1, keepdim=True)
+    #return torch.full((B,), 1.5, dtype=torch.float, device=x.device) + 0 * self.dummy  # baseline
+    x = self.stack(x)
+    l = x.shape[-1]
+    assert x.shape == (B, 1, l)
+    # and we want these guys to be at most 1:
+    speakers_aggregated_excess = (x - 1)[x > 1].sum()
+    assert speakers_aggregated_excess.ndim == 0
+    return speakers_aggregated_excess

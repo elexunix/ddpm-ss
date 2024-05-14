@@ -100,9 +100,9 @@ class SepformerSeparation10(Pretrained):
         print('ERROR', name, 'not found in pretrained model from which we init!')
         quit(57)
     print('init from pretrained completed!')
-    for name, p in self.named_parameters():
-      if p.requires_grad:
-        print('training parameter', name, 'shape', p.shape)
+    #for name, p in self.named_parameters():
+    #  if p.requires_grad:
+    #    print('training parameter', name, 'shape', p.shape)
     cnt_trained = sum(np.prod(p.shape) for p in self.parameters() if p.requires_grad)
     print('Total number of trainable parameters:', cnt_trained)
     #assert cnt_trained == 328960

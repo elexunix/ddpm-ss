@@ -245,12 +245,15 @@ class DDPMSSTrainer(BaseTrainer):
 
   def _log_audio(self, caption, audio_batch):
     audio = audio_batch.cpu()[0]  #random.choice(audio_batch.cpu())
+    audio *= 30 / audio.norm(dim=-1, keepdim=True)
     self.writer.add_audio(caption, audio, sample_rate=16000)
 
   def _log_audios(self, batch):
     self._log_audio('mixed spectrogram', batch['mixed'])
     for i in range(self.Nsp):
       self._log_audio(f'target{i+1} spectrogram', batch[f'target{i+1}'])
+      self._log_audio(f'separated{i+1} spectrogram', batch[f'separated{i+1}'])
+      self._log_audio(f'denoised{i+1} spectrogram', batch[f'denoised{i+1}'])
       self._log_audio(f'predicted{i+1} spectrogram', batch[f'predicted{i+1}'])
 
   @torch.no_grad()

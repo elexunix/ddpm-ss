@@ -1,5 +1,5 @@
 {
-  "name": "speaker-counting",
+  "name": "sepformer10-bayesian",
   "n_gpu": 1,
   "preprocessing": {
     "sr": 16000,
@@ -15,53 +15,35 @@
     "spectrogram": []
   },
   "arch": {
-    "type": "SpeakerCountingModel",
+    "type": "SepDiffConditionalModel",
     "args": {
+      "Nsp": 10
     }
   },
   "data": {
     "train": {
-      "batch_size": 16,
+      "batch_size": 2,
       "num_workers": 0,
       "datasets": [
        {
-          "type": "LibriUnk3MixDataset",
+          "type": "Libri10MixDataset",
           "args": {
-            "libri0mix_root_dir": "/media/elexunix/seconddrive/librimix/wham_noise",
-            "libri1mix_clean_csv_filename": "/media/elexunix/seconddrive/librimix/Libri1Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
-            "libri1mix_dirty_csv_filename": "/media/elexunix/seconddrive/librimix/Libri1Mix/wav16k/max/metadata/mixture_train-360_mix_both.csv",
-            "libri2mix_clean_csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
-            "libri2mix_dirty_csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_train-360_mix_both.csv",
-            "libri3mix_clean_csv_filename": "/media/elexunix/seconddrive/librimix/Libri3Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
-            "libri3mix_dirty_csv_filename": "/media/elexunix/seconddrive/librimix/Libri3Mix/wav16k/max/metadata/mixture_train-360_mix_both.csv",
-            "cnt_limit_0": 33333,
-            "cnt_limit_1": 33333,
-            "cnt_limit_2": 33333,
-            "cnt_limit_3": 33333,
+            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri10Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
             "maxlen": 65536
           }
         }
       ]
     },
     "val": {
-      "batch_size": 16,
+      "batch_size": 2,
       "num_workers": 0,
       "datasets": [
        {
-          "type": "LibriUnk3MixDataset",
+          "type": "Libri10MixDataset",
           "args": {
-            "libri0mix_root_dir": "/media/elexunix/seconddrive/librimix/wham_noise",
-            "libri1mix_clean_csv_filename": "/media/elexunix/seconddrive/librimix/Libri1Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
-            "libri1mix_dirty_csv_filename": "/media/elexunix/seconddrive/librimix/Libri1Mix/wav16k/max/metadata/mixture_train-360_mix_both.csv",
-            "libri2mix_clean_csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
-            "libri2mix_dirty_csv_filename": "/media/elexunix/seconddrive/librimix/Libri2Mix/wav16k/max/metadata/mixture_train-360_mix_both.csv",
-            "libri3mix_clean_csv_filename": "/media/elexunix/seconddrive/librimix/Libri3Mix/wav16k/max/metadata/mixture_train-360_mix_clean.csv",
-            "libri3mix_dirty_csv_filename": "/media/elexunix/seconddrive/librimix/Libri3Mix/wav16k/max/metadata/mixture_train-360_mix_both.csv",
-            "cnt_limit_0": 3333,
-            "cnt_limit_1": 3333,
-            "cnt_limit_2": 3333,
-            "cnt_limit_3": 3333,
-            "maxlen": 65536
+            "csv_filename": "/media/elexunix/seconddrive/librimix/Libri10Mix/wav16k/max/metadata/mixture_test_mix_clean.csv",
+            "maxlen": 65536,
+            "cnt_limit": 10
           }
         }
       ]
@@ -82,13 +64,13 @@
   "lr_scheduler": {
     "type": "ExponentialLR",
     "args": {
-      "gamma": 0.999
+      "gamma": 0.91
     }
   },
   "trainer": {
     "Nsp": 10,
     "epochs": 1,
-    "log_interval": 100,
+    "log_interval": 2,
     "save_dir": "saved/",
     "save_period": 500,
     "verbosity": 2,
@@ -96,7 +78,7 @@
     "early_stop": 100,
     "visualize": "wandb",
     "wandb_project": "ddpmss_project",
-    "len_epoch": 2000,
+    "len_epoch": 20,
     "grad_norm_clip": 10
   }
 }

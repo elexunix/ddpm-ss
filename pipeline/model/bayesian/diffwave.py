@@ -4,8 +4,27 @@ import torch.nn.functional as F
 from speechbrain.nnet.CNN import Conv1d
 from speechbrain.nnet import linear
 from speechbrain.nnet.diffusion import DenoisingDiffusion
+from pathlib import Path
 from math import sqrt
 from torchaudio import transforms
+from ..spcnt.model import SpeakerCountingModel
+
+
+spcnt_model = SpeakerCountingModel().cuda()
+current_dir = Path(__file__).resolve().parent
+spcnt_model_state_dict = torch.load(current_dir / 'spcnt-model646-best.pth')['state_dict']
+spcnt_model.load_state_dict(spcnt_model_state_dict)
+
+@torch.enable_grad()
+@torch.inference_mode(False)
+def direction_from_1sp(audios0):
+  assert not audios0.requires_grad
+  assert torch.is_grad_enabled()
+  audios = audios0.clone()
+  audios.requires_grad_()
+  sp_excess = spcnt_model.kekward(audios)
+  direction_from_1sp = torch.autograd.grad(sp_excess, audios)[0]
+  return direction_from_1sp
 
 
 class DiffWaveDiffusionTuned(DenoisingDiffusion):
@@ -127,8 +146,8 @@ class DiffWaveDiffusionTuned(DenoisingDiffusion):
     # noise_scale = torch.from_numpy(alpha_cum**0.5).float().unsqueeze(1).to(device)
 
     for n in range(len(inference_alphas) - 1, -1, -1):
-      c1 = 1 / inference_alphas[n] ** 0.5
-      c2 = (inference_noise_schedule[n] / (1 - inference_alpha_cum[n]) ** 0.5)
+      k1 = 1 / inference_alphas[n] ** 0.5
+      k2 = (inference_noise_schedule[n] / (1 - inference_alpha_cum[n]) ** 0.5)
       # predict noise
       noises_pred = torch.stack([
         self.model(
@@ -144,7 +163,9 @@ class DiffWaveDiffusionTuned(DenoisingDiffusion):
       #print(f'{audios=}, {initial_src_approximations=}')
       discrepancy = audios - initial_src_approximations[..., :audios.shape[-1]]
       #print(f'{noises_pred=}, {excess=}, {discrepancy=}')
-      audios = c1 * (audios - c2 * (noises_pred +0.0 * excess +0.0 * discrepancy))
+      direction = direction_from_1sp(audios)
+      #print(f'{audios=}, {direction_from_1sp=}')
+      audios = k1 * (audios - k2 * (noises_pred +0.0 * excess +0.0 * discrepancy +10 * direction))
       # add variance
       if n > 0:
         noises = torch.randn_like(audios)
