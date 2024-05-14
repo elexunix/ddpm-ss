@@ -12,10 +12,9 @@ audio = audio[None]
 audio.requires_grad_()
 print(f'{audio.shape=}')
 
-for lr in tqdm(10**np.linspace(0, -3, 1000)):
+for lr in tqdm([1e-1] * 5):
   n_sp_real = model(audio)
-  if np.random.rand() < .1:
-    print(n_sp_real.item())
+  print(n_sp_real.item())
   direction_towards = torch.autograd.grad((n_sp_real - 1)**2, audio)[0]
   audio.requires_grad_(False)
   audio -= lr * direction_towards
