@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch, torchaudio
 from torchmetrics.audio.sdr import scale_invariant_signal_distortion_ratio as sisdr
+import itertools
+from tqdm import tqdm, trange
 
 
 #a = np.array([[-10.1570, -27.18069, -26.88037, -22.46214, -26.27515,
@@ -49,6 +51,16 @@ from torchmetrics.audio.sdr import scale_invariant_signal_distortion_ratio as si
 #plt.savefig('2/sisdrs10.png')
 
 
+def reorder(a):
+  n = a.shape[0]
+  best = -1e9
+  for sigma in tqdm(itertools.permutations(range(n))):
+    current = a[np.array(sigma), np.arange(n)].sum()
+    if current > best:
+      best, best_sigma = current, sigma
+      print(best, best_sigma, a[np.array(sigma), np.arange(n)])
+  return np.array(best_sigma)
+
 preds, tgts = [], []
 for i in range(10):
   pred, sr = torchaudio.load(f'2/predicted{i}.wav')
@@ -63,9 +75,28 @@ for i in range(10):
   torchaudio.save(f'2/normalized/target{i}.wav', tgt, sr)
   tgts.append(tgt)
 
-a = np.array([[sisdr(pred, tgt).item() for tgt in tgts] for pred in preds])
+pred_tgt = np.array([[sisdr(pred, tgt).item() for tgt in tgts] for pred in preds])
+pred_pred = np.array([[sisdr(pred, pred2).item() for pred2 in preds] for pred in preds])
+tgt_tgt = np.array([[sisdr(tgt, tgt2).item() for tgt2 in tgts] for tgt in tgts])
 
-print(a)
-assert a.shape == (10, 10)
-plt.imshow(a)
+assert pred_tgt.shape == (10, 10)
+
+print(f'{pred_tgt=}')
+sigma = reorder(pred_tgt)
+print(sigma)
+for i in range(10):
+  print(f'tgt {i} pred {sigma[i]}')
+quit(0)
+sigma = np.arange(10)
+fig, axes = plt.subplots(1, 3)
+print(f'{pred_pred=}')
+print(f'{pred_tgt=}')
+print(f'{tgt_tgt=}')
+axes[0].set_title('pred-pred')
+axes[0].imshow(pred_pred[sigma], vmin=-30, vmax=+10)
+axes[1].set_title('pred-tgt')
+axes[1].imshow(pred_tgt[sigma], vmin=-30, vmax=+10)
+axes[2].set_title('tgt-tgt')
+axes[2].imshow(tgt_tgt[sigma], vmin=-30, vmax=+10)
+#axes[1].colorbar()
 plt.savefig('2/normalized/sisdrs10.png')
