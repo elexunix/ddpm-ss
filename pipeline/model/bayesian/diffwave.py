@@ -165,7 +165,7 @@ class DiffWaveDiffusionTuned(DenoisingDiffusion):
       #print(f'{noises_pred=}, {excess=}, {discrepancy=}')
       direction = direction_from_1sp(audios)
       #print(f'{audios=}, {direction_from_1sp=}')
-      audios = k1 * (audios - k2 * (noises_pred +0.0 * excess +0.0 * discrepancy +10 * direction))
+      audios = k1 * (audios - k2 * (noises_pred +0.0 * excess +0.0 * discrepancy +0.0 * direction))
       # add variance
       if n > 0:
         noises = torch.randn_like(audios)

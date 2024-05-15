@@ -252,9 +252,11 @@ class DDPMSSTrainer(BaseTrainer):
     self._log_audio('mixed spectrogram', batch['mixed'])
     for i in range(self.Nsp):
       self._log_audio(f'target{i+1} spectrogram', batch[f'target{i+1}'])
-      self._log_audio(f'separated{i+1} spectrogram', batch[f'separated{i+1}'])
-      self._log_audio(f'denoised{i+1} spectrogram', batch[f'denoised{i+1}'])
-      self._log_audio(f'predicted{i+1} spectrogram', batch[f'predicted{i+1}'])
+      self._log_audio(f'predicted{i+1} spectrogram', batch[f'target{i+1}'])
+      self._log_audio(f'separated{i+1}_prebridge spectrogram', batch[f'separated{i+1}_prebridge'])
+      self._log_audio(f'separated{i+1}_postbridge spectrogram', batch[f'separated{i+1}_postbridge'])
+      self._log_audio(f'denoised{i+1}_prebridge spectrogram', batch[f'denoised{i+1}_prebridge'])
+      self._log_audio(f'denoised{i+1}_postbridge spectrogram', batch[f'denoised{i+1}_postbridge'])
 
   @torch.no_grad()
   def get_grad_norm(self, norm_type=2):

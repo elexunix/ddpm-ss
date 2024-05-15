@@ -43,7 +43,7 @@
           "args": {
             "csv_filename": "/media/elexunix/seconddrive/librimix/Libri10Mix/wav16k/max/metadata/mixture_test_mix_clean.csv",
             "maxlen": 65536,
-            "cnt_limit": 30
+            "cnt_limit": 1000
           }
         }
       ]
@@ -64,13 +64,13 @@
   "lr_scheduler": {
     "type": "ExponentialLR",
     "args": {
-      "gamma": 0.97
+      "gamma": 0.9991
     }
   },
   "trainer": {
     "Nsp": 10,
     "epochs": 1,
-    "log_interval": 3,
+    "log_interval": 100,
     "save_dir": "saved/",
     "save_period": 500,
     "verbosity": 2,
@@ -78,7 +78,7 @@
     "early_stop": 100,
     "visualize": "wandb",
     "wandb_project": "ddpmss_project",
-    "len_epoch": 60,
+    "len_epoch": 2000,
     "grad_norm_clip": 10
   }
 }
