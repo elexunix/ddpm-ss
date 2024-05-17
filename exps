@@ -298,4 +298,10 @@ small unet back:
 config-2k:
 852                     -4.215  with large unet
 853                     -4.233  with nothing
-config-60, nothing:
+config-60, large unet with fixed strides:
+889                     -4.395
+890                     -4.365
+config-200:
+895                     -4.163
+config-700:
+897                     -4.263

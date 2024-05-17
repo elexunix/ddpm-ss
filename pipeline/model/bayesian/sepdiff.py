@@ -17,12 +17,10 @@ class MixerModel(nn.Module):
       #nn.Conv1d(in_channels=768, out_channels=2*768, groups=32, kernel_size=32, stride=16, padding=24),
       nn.Conv2d(in_channels=1, out_channels=8, kernel_size=(16,32), stride=(3,16), padding=(0,24)),
     )
-    self.mixer_bottom = nn.Sequential(
+    self.mixer = nn.Sequential(
       nn.Conv2d(in_channels=2, out_channels=n_channels[0], kernel_size=3, padding=1),
       nn.BatchNorm2d(num_features=n_channels[0]),
       nn.ReLU(),
-    )
-    self.mixer_top = nn.Sequential(
       nn.Conv2d(in_channels=n_channels[0], out_channels=n_channels[1], kernel_size=3, padding=1),
       nn.BatchNorm2d(num_features=n_channels[1]),
       nn.ReLU(),
@@ -39,7 +37,7 @@ class MixerModel(nn.Module):
     )
 
   def forward(self, x, y, f):
-    print(f'{x.shape=}, {y.shape=}, {f.shape=}')
+    #print(f'{x.shape=}, {y.shape=}, {f.shape=}')
     #f = F.pad(self.premixer(f.transpose(0, 1)).transpose(0, 1), (0, 3))
     B, C, H, W = x.shape
     B_, C_, H_, W_ = y.shape
@@ -50,10 +48,10 @@ class MixerModel(nn.Module):
       x_slice, y_slice = x[:, i, :, :], y[:, i, :, :]
       #f_slice = self.premixer(f[:, i, :, :])
       z = torch.stack([x_slice, y_slice], 1)
-      z_mid = self.mixer_bottom(z)
-      f_mid = self.premixer(f[:, i:i + 1, :, :])
-      print(f'{z_mid.shape=}, {f_mid.shape=}')
-      z = self.mixer_top(z_mid)
+      #z_mid = self.mixer_bottom(z)
+      #f_mid = self.premixer(f[:, i:i + 1, :, :])
+      #print(f'{z_mid.shape=}, {f_mid.shape=}')
+      z = self.mixer(z)
       assert z.ndim == 4
       assert z.shape[1] == 2
       a_coeffs, b_coeffs = z[:, 0, :, :], z[:, 1, :, :]
@@ -77,32 +75,32 @@ class PostMiniNetwork(nn.Module):  # moderately-sized U-Net
   def __init__(self, n_channels=[64,128,256]):
     super().__init__()
     self.conv1a = nn.Sequential(
-      nn.Conv1d(in_channels=10, out_channels=n_channels[0], kernel_size=32),
+      nn.Conv1d(in_channels=10, out_channels=n_channels[0], kernel_size=32, stride=8),
       nn.BatchNorm1d(num_features=n_channels[0]),
       nn.ReLU(),
     )
     self.conv2a = nn.Sequential(
-      nn.Conv1d(in_channels=n_channels[0], out_channels=n_channels[1], kernel_size=7),
+      nn.Conv1d(in_channels=n_channels[0], out_channels=n_channels[1], kernel_size=7, stride=4),
       nn.BatchNorm1d(num_features=n_channels[1]),
       nn.ReLU(),
     )
     self.conv3a = nn.Sequential(
-      nn.Conv1d(in_channels=n_channels[1], out_channels=n_channels[2], kernel_size=5),
+      nn.Conv1d(in_channels=n_channels[1], out_channels=n_channels[2], kernel_size=5, stride=2),
       nn.BatchNorm1d(num_features=n_channels[2]),
       nn.ReLU(),
     )
     self.conv3b = nn.Sequential(
-      nn.ConvTranspose1d(in_channels=n_channels[2], out_channels=n_channels[1], kernel_size=5),
+      nn.ConvTranspose1d(in_channels=n_channels[2], out_channels=n_channels[1], kernel_size=5, stride=2, output_padding=1),
       nn.BatchNorm1d(num_features=n_channels[1]),
       nn.ReLU(),
     )
     self.conv2b = nn.Sequential(
-      nn.ConvTranspose1d(in_channels=n_channels[1], out_channels=n_channels[0], kernel_size=7),
+      nn.ConvTranspose1d(in_channels=n_channels[1], out_channels=n_channels[0], kernel_size=7, stride=4, output_padding=2),
       nn.BatchNorm1d(num_features=n_channels[0]),
       nn.ReLU(),
     )
     self.conv1b = nn.Sequential(
-      nn.ConvTranspose1d(in_channels=n_channels[0], out_channels=10, kernel_size=32),
+      nn.ConvTranspose1d(in_channels=n_channels[0], out_channels=10, kernel_size=32, stride=8),
       nn.BatchNorm1d(num_features=10),
     )
 
@@ -136,8 +134,8 @@ class SepDiffConditionalModel(nn.Module):
     self.dummy = nn.Parameter(torch.randn(1))
 #    self.post_separator = PostMicroNetwork()
 #    self.post_denoiser = PostMicroNetwork()
-#    self.post_separator = PostMiniNetwork()
-#    self.post_denoiser = PostMiniNetwork()
+    self.post_separator = PostMiniNetwork()
+    self.post_denoiser = PostMiniNetwork()
     # add conv-transpose, make U-Net
     # make it channel-independent, not n_channels=10
 
@@ -168,8 +166,8 @@ class SepDiffConditionalModel(nn.Module):
       denoised_16k = self.resampler_22k16k(denoised_22k)
       denoised_16k = self.fix_length(denoised_16k, L, lenience=256)
       assert denoised_16k.shape == (B, self.Nsp, L)
-    separated_16k_postbridge = separated_16k + 0#self.post_separator(separated_16k)
-    denoised_16k_postbridge = denoised_16k + 0#self.post_denoiser(denoised_16k)
+    separated_16k_postbridge = separated_16k + self.post_separator(separated_16k)
+    denoised_16k_postbridge = denoised_16k + self.post_denoiser(denoised_16k)
     separated = torch.cat([self.stft(separated_16k_postbridge[:, i, :]) for i in range(self.Nsp)], 1)
     denoised = torch.cat([self.stft(denoised_16k_postbridge[:, i, :]) for i in range(self.Nsp)], 1)
     predicted_angle = self.mixer_angle(separated.angle(), denoised.angle(), sepformer_features)

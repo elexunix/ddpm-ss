@@ -24,8 +24,8 @@ class Sepformer10ModelPretrained(nn.Module):
     sepformer10_pretrained_state_dict = OrderedDict({key[6:] : value for key, value in stuff.items() if key.startswith('model.')})
     #self.model.load_state_dict(dct)
     self.model = SepformerSeparation10(sepformer10_pretrained_state_dict, modules=hparams['modules'], hparams=hparams)
-    print('model with', sum(p.numel() for p in self.model.parameters()), 'parameters')
-    print('training:', self.model.training, '!!')
+    #print('model with', sum(p.numel() for p in self.model.parameters()), 'parameters')
+    #print('training:', self.model.training, '!')
 
   def forward(self, mixture_at_16khz):
     #print(f'{mixture_at_16khz.shape=}')
