@@ -31,7 +31,7 @@ class Sepformer10ModelPretrained(nn.Module):
     #print(f'{mixture_at_16khz.shape=}')
     mixture_at_8khz = self.resampler_16k8k(mixture_at_16khz)
     #print(f'{mixture_at_8khz.shape=}')
-    est_sources = self.model(mixture_at_8khz)
+    est_sources, features = self.model(mixture_at_8khz)
     #print(f'{est_sources.shape=}')
     B, L, Nsp = est_sources.shape  # Sepformer-style shape
     assert Nsp == 10  # here are the 10 speakers
@@ -39,4 +39,4 @@ class Sepformer10ModelPretrained(nn.Module):
     L2 = predicted.shape[2]
     #print(f'{predicted.shape=}, {B=}, {Nsp=}, {L2=}')
     assert predicted.shape == (B, Nsp, L2)
-    return predicted
+    return predicted, features

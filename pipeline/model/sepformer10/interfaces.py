@@ -126,6 +126,7 @@ class SepformerSeparation10(Pretrained):
     est_mask = self.mods.masknet(mix_w)
     mix_w = torch.stack([mix_w] * self.hparams.num_spks)
     sep_h = mix_w * est_mask
+    features = torch.cat([mix_w, est_mask, sep_h], -2).transpose(0, 1)
     # Decoding
     est_source = torch.cat([
       self.mods.decoder(sep_h[i]).unsqueeze(-1)
@@ -140,13 +141,13 @@ class SepformerSeparation10(Pretrained):
       est_source = F.pad(est_source, (0, 0, 0, T_origin - T_est))
     else:
       est_source = est_source[:, :T_origin, :]
-    return est_source
+    return est_source, features
 
   def forward(self, mix):
     """Runs separation on the input mix"""
     B, C, L = mix.shape
     assert C == 1
     mix = mix.squeeze(1)
-    separated = self.separate_batch(mix)
+    separated, features = self.separate_batch(mix)
     #print(f'{separated.shape=}')
-    return separated
+    return separated, features
