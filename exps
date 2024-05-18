@@ -305,3 +305,22 @@ config-200:
 895                     -4.163
 config-700:
 897                     -4.263
+remove batchnorm in the end, config-60:
+900                     -26.576
+901                     -4.473
+config-200:
+902                     -4.137
+unet for fusion:
+925                     -8.323
+927                     -16.735
+config-200:
+928                     -4.385
+config-60:
+933                     -4.806
+934                     -6.943
+doubly deep, config-200:
+940                     -4.140
+with features from sepformer:
+954                     -4.139  impaired unet upsampling, didn't receive gmids
+config-2k:
+970                     -4.225
