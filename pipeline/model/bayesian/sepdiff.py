@@ -13,10 +13,10 @@ class MixerModel(nn.Module):
     super().__init__()
     self.Nsp = Nsp
     assert len(n_channels) == 5
-    self.premixer = nn.Sequential(
+    #self.premixer = nn.Sequential(
       #nn.Conv1d(in_channels=768, out_channels=2*768, groups=32, kernel_size=32, stride=16, padding=24),
-      nn.Conv2d(in_channels=1, out_channels=8, kernel_size=(16,32), stride=(3,16), padding=(0,24)),
-    )
+      #nn.Conv2d(in_channels=1, out_channels=8, kernel_size=(16,32), stride=(3,16), padding=(0,24)),
+    #)
     self.conv1a = nn.Sequential(
       nn.Conv2d(in_channels=2, out_channels=n_channels[0], kernel_size=7, stride=2, padding=2),
       nn.BatchNorm2d(num_features=n_channels[0]),
